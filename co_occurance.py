@@ -163,3 +163,5 @@ for i in range(len(phi_list)):
 
     p = phi_list[i][1]
     phi_sums_df = phi_sums_df.append({'Gene': g, 'HPO': h, 'phi': p, 'gene_sum': gs, 'hpo_sum': hs}, ignore_index=True)
+
+pickle.dump(phi_sums_df, open("Data/phi_sums_df.pickle", "wb"))
