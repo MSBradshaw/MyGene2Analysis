@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from math import sqrt
 import re
-
+import networkx as nx
 
 def calc_phi(tp, fp, tn, fn):
     # https://stackoverflow.com/a/56875660/992687
@@ -170,7 +170,6 @@ else:
         p = phi_list[i][1]
         phi_sums_df = phi_sums_df.append({'Gene': g, 'HPO': h, 'phi': p, 'gene_sum': gs, 'hpo_sum': hs}, ignore_index=True)
     pickle.dump(phi_sums_df, open("Data/phi_sums_df.pickle", "wb"))
-
 
 # sort the df by phi
 
