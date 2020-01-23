@@ -135,8 +135,15 @@ def combine_nodes_phi(graph, gene, combine_hpos):
 # see if community 8's phi falls above the 95% threshold
 
 phis = []
-for i in range(10):
-    gene = genes[random.randint(0, len(genes))]
+gene_phis = {}
+while len(phis) < 10000:
+    try:
+        index = random.randint(0, len(genes)-1)
+        gene = genes[index]
+    except IndexError:
+        print(index)
+        print(len(genes))
+        quit()
     # get neighbors of gene, because it is bipartite
     neighbors = nx.neighbors(G, gene)
     neighbors = list(neighbors)
@@ -155,7 +162,27 @@ for i in range(10):
         chosen_neighbors.append(neighbors[j])
 
     # calc phi
-    phis.append(combine_nodes_phi(G.copy(), gene, chosen_neighbors))
-print(phis)
+    p = combine_nodes_phi(G.copy(), gene, chosen_neighbors)
+    phis.append(p)
+    if gene in gene_phis.keys():
+        gene_phis[gene].append(p)
+    else:
+        gene_phis[gene] = [p]
 
-# TODO 1000+ boot straps and plot the data. Box and Manhattan Plots
+print(len(phis))
+pickle.dump(phis, open('CommunityDetection/10000-bootstraps-phi.pickle','wb'))
+pickle.dump(gene_phis, open('10000-bootstraps-phi-dictionary.pickle','wb'))
+
+phis = pickle.load(open('CommunityDetection/10000-bootstraps-phi.pickle','rb'))
+
+fig2, ax2 = plt.subplots()
+# plot the only community with an intersting phu (com 8)
+plt.axhline(y=0.31613179478426595,color='blue',linestyle=':')
+plt.text(1, 0.31613179478426595, '     Community 8', fontsize=8, va='bottom', ha='left', backgroundcolor=(0.0, 0.0, 0.0, 0.0))
+# plot the threshold for significance using a Bon Ferroni correction (we did 11 tests of communities)
+thresh = np.percentile(np.array(phis),(100 - (5 / 11)))
+plt.axhline(y=thresh,color='red',linestyle='--')
+plt.text(1,thresh, '     99.54 Threshold', fontsize=8, va='bottom', ha='left', backgroundcolor=(0.0, 0.0, 0.0, 0.0))
+ax2.set_title('Phi\'s Bootstraping, n=10,000')
+ax2.boxplot(phis, notch=True)
+fig2.savefig('CommunityDetection/phi-10000-boxplot.png', dpi=fig2.dpi)
