@@ -5,10 +5,10 @@ from os import path
 import random
 import sys
 # load the pre made network of protein links
-G = pickle.load( open( "../protein_links_network_named.pickle", "rb" ) )
+G = pickle.load( open( "protein_links_network_named.pickle", "rb" ) )
 
 #load the protein information tsv to get meaning full names for the nodes
-pro_info = pd.read_csv('../StringDB/protein.info.v11.0.txt',sep='\t')
+pro_info = pd.read_csv('StringDB/protein.info.v11.0.txt',sep='\t')
 
 # make the row name the external id
 pro_info.index = pro_info.loc[:,'protein_external_id']
