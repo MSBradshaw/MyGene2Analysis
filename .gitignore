@@ -1,4 +1,4 @@
-StringDB/
+StringDB/*.txt
 .idea
 protein*
 CommunityDetection/.DS_Store

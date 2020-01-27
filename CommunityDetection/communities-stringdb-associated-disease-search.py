@@ -4,28 +4,60 @@ import pickle
 from os import path
 import random
 import sys
-# load the pre made network of protein links
-G = pickle.load( open( "protein_links_network_named.pickle", "rb" ) )
 
-#load the protein information tsv to get meaning full names for the nodes
-pro_info = pd.read_csv('StringDB/protein.info.v11.0.txt',sep='\t')
+"""
+This script finds all genes/proteins known to interact with a given set on input genes and the finds all HPO terms 
+associated with those genes/proteins and writes it to a csv file.
+"""
 
-# make the row name the external id
-pro_info.index = pro_info.loc[:,'protein_external_id']
+proG = pickle.load(open('../StringDB/protein_links_network_with_gene_names.pickle', 'rb'))
+hpoG = pickle.load(open('../gene_to_hpo_with_common_names_network.pickle', 'rb'))
 
-g = G.copy()
+df = pd.DataFrame({'Community': [], 'Gene': [], 'protein_neighbor': [], 'hpo':[],
+                       'hpo_name': []})
+# create the blank csv with column names
+df.to_csv('string-hpo-known-associations.csv')
 
-name_mapping = {}
-print(sys.argv)
-start = int(sys.argv[1]) * 1000
-end = start + 1000
-# give real names to the graph
-for n in list(G.nodes)[start:end]:
-    print(n)
-    name_mapping[n] = pro_info.loc[n,'preferred_name']
+# genes of interested
+genes = ['MYLK4', 'MYH2', 'DNAH7', 'BGN', 'SAE1', 'PLK3', 'UHRF1BP1L', 'TBCB', 'UVRAG', 'ERCC3']
 
-# g = nx.relabel_nodes(g,{n:pro_info.loc[n,'preferred_name']})
-pickle.dump(name_mapping,open('name_mapping_'+str(start/1000)+'.pickle','wb'))
-# pickle.dump(g,open('protein_links_networkx_gene_named.pickle','wb'))
+# communities those genes belong to based on greedy community detection
+communities = [6, 6, 6, 8, 9, 9, 9, 9, 10, 10]
 
-# search for a protein/gene's associated proteins/genes
+for i in range(len(genes)):
+    gene = genes[i]
+    com = communities[i]
+    # given a list of genes print out all it's neighbors
+    try:
+        pro_neightbors = nx.neighbors(proG, gene)
+    except nx.exception.NetworkXError:
+        print(gene + str(' not in network'))
+        continue
+
+    out_gene = []
+    out_pro_neighbor = []
+    out_hpo = []
+    out_name = []
+    out_com = []
+    for pn in pro_neightbors:
+
+        try:
+            hpo_neighbors = nx.neighbors(hpoG, pn)
+        except nx.exception.NetworkXError:
+            print(pn + str(' not in network'))
+            continue
+
+        for h in hpo_neighbors:
+            print(i)
+            out_gene.append(gene)
+            out_pro_neighbor.append(pn)
+            out_hpo.append(h)
+            out_name.append(hpoG.nodes[h]['common_name'])
+            out_com.append(com)
+
+    # convert to a pd
+    df = pd.DataFrame({'Community': out_com, 'Gene': out_gene, 'protein_neighbor': out_pro_neighbor, 'hpo': out_hpo,
+                       'hpo_name': out_name})
+
+    # append pd to csv
+    df.to_csv('string-hpo-known-associations.csv', mode='a', header=False)
