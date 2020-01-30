@@ -37,8 +37,12 @@ for(i in seq(1,nrow(community_matrix))){
   coms[[(length(coms) + 1)]] <- com
 }
 coms
-
-
+cat(as.character(res@likelihood),append=TRUE,file="outfile.txt")
+cat("\n",append=TRUE,file="outfile.txt")
+for( i in seq(1,length(coms))){
+  cat(paste(coms[[i]], collapse = ','),append=TRUE,file="outfile.txt")
+  cat("\n",append=TRUE,file="outfile.txt")
+}
 
 
 
