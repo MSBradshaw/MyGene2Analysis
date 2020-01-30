@@ -5,6 +5,11 @@ from os import path
 import random
 import sys
 
+"""
+This file takes data from HPO on genes to phenotype connections, creates a networkx object of the data with the common
+names of the HPO terms as metadata.
+"""
+
 # the source file was downloaded January 27th 2020 from
 # http://compbio.charite.de/jenkins/job/hpo.annotations.monthly/lastSuccessfulBuild/artifact/annotation/ALL_SOURCES_ALL_FREQUENCIES_genes_to_phenotype.txt
 

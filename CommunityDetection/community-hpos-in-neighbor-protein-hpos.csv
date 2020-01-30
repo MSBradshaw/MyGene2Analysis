@@ -1,0 +1,18 @@
+,Community,hpo,hpo_name,gene_assocaited_with_hpo
+0,6,HP:0000282,Facial edema,['ALB']
+1,6,HP:0002803,Congenital contracture,"['VRK1', 'FKTN', 'POMT1', 'NALCN', 'MYH2']"
+2,6,HP:0002202,Pleural effusion,"['RIT1', 'CFTR', 'RIT1', 'IL6']"
+3,6,HP:0001989,Fetal akinesia sequence,"['KIF5C', 'MYOD1', 'CHRND', 'TPM3', 'KLHL40', 'TPM2', 'MYPN', 'NEB', 'KIF5C', 'MUSK', 'TPM3', 'TPM2', 'ACTA1', 'NEK9', 'KBTBD13', 'CHRNG', 'KLHL40', 'CHRND', 'CHRNA1', 'RYR1', 'MYOD1', 'RAPSN', 'MYPN', 'NEB', 'KLHL41', 'KIF5C', 'ACTA1']"
+4,8,HP:0010442,Polydactyly,"['TGFBR2', 'FBLN1', 'EBP', 'GDF5']"
+5,8,HP:0002984,Hypoplasia of the radius,"['TBX3', 'FGF10', 'EIF4A3', 'SF3B4', 'IHH', 'FGFR2', 'FGFR3', 'GDF5']"
+6,8,HP:0001829,Foot polydactyly,"['SHH', 'TBX1', 'EBP']"
+7,8,HP:0000456,,[]
+8,8,HP:0009556,Absent tibia,['ATP7A']
+9,8,HP:0010503,Fibular duplication,['SHH']
+10,9,HP:0030430,,[]
+11,9,HP:0002671,Basal cell carcinoma,"['MLH1', 'MSH2', 'MSH6', 'KRAS', 'ERCC5', 'RECQL4', 'MSH2', 'MSH6', 'KRAS', 'DDB2', 'WNT10A', 'RASGRP1', 'ERCC4', 'OCA2', 'ERCC5', 'FAN1', 'LMNA', 'NRAS', 'CIB1', 'HRAS', 'RECQL4', 'HRAS']"
+12,9,HP:0002665,Lymphoma,"['WAS', 'KIF11', 'CFTR', 'TP53', 'NHP2', 'MLH1', 'MSH2', 'MSH6', 'KRAS', 'MDM2', 'RAD54B', 'LIG4', 'BLM', 'CHD7', 'DKC1', 'RECQL4', 'CHEK2', 'RAD54L', 'CDKN2A', 'NFKB2', 'RB1', 'PTEN', 'NFKB1', 'KIF11', 'MSH2', 'MSH6', 'KRAS', 'MDM2', 'STAT3', 'TP53', 'ATM', 'RAD54B', 'BLM', 'NRAS', 'RAD54L', 'LIG4', 'RECQL4', 'CHEK2', 'ITK', 'NHP2']"
+13,10,HP:0000992,Cutaneous photosensitivity,"['NCF4', 'NCF1', 'CYBB', 'GTF2E2', 'LIG4', 'DDB2', 'CYBA', 'IFIH1', 'ERCC4', 'ERCC1', 'PEPD', 'DDB2', 'IFIH1', 'NSUN2', 'TP63', 'ERCC8', 'XPC', 'MPLKIP', 'ERCC6', 'GTF2E2', 'XPA', 'ERCC2', 'LIG4', 'POLH', 'GTF2H5', 'BLM', 'ERCC4', 'ERCC5', 'XRCC4', 'RNF113A', 'UVSSA', 'STXBP1', 'PCNA', 'RECQL4']"
+14,10,HP:0000563,Keratoconus,"['HRAS', 'CRB1', 'DHDDS', 'IFT88', 'HRAS', 'DHX38', 'PRPF8', 'PRPF31', 'SNRNP200', 'TTC8', 'NRL', 'USP45']"
+15,10,HP:0030127,,[]
+16,10,HP:0000613,Photophobia,"['TLR4', 'PIKFYVE', 'LYST', 'TNF', 'ESR1', 'MCOLN1', 'ATF6', 'NOD2', 'GTF2E2', 'DDB2', 'DRAM2', 'AIRE', 'MITF', 'ERCC4', 'NLRP1', 'CRB1', 'DHDDS', 'IFT88', 'DDB2', 'TYR', 'TP63', 'DHX38', 'XPC', 'ITM2B', 'PRPF8', 'GPR143', 'MPLKIP', 'ERCC6', 'GTF2E2', 'XPA', 'ESR1', 'ERCC2', 'PRPF31', 'SNRNP200', 'POLH', 'GTF2H5', 'ERCC4', 'ERCC5', 'RNF113A', 'POLA1', 'TTC8', 'NRL', 'PCNA', 'HPS6']"

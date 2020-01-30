@@ -2,3 +2,4 @@ StringDB/*.txt
 .idea
 protein*
 CommunityDetection/.DS_Store
+.DS_Store/*

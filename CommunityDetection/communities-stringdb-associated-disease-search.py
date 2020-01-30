@@ -13,8 +13,7 @@ associated with those genes/proteins and writes it to a csv file.
 proG = pickle.load(open('../StringDB/protein_links_network_with_gene_names.pickle', 'rb'))
 hpoG = pickle.load(open('../gene_to_hpo_with_common_names_network.pickle', 'rb'))
 
-df = pd.DataFrame({'Community': [], 'Gene': [], 'protein_neighbor': [], 'hpo':[],
-                       'hpo_name': []})
+df = pd.DataFrame({'Community': [], 'Gene': [], 'protein_neighbor': [], 'hpo': [], 'hpo_name': []})
 # create the blank csv with column names
 df.to_csv('string-hpo-known-associations.csv')
 
@@ -24,6 +23,32 @@ genes = ['MYLK4', 'MYH2', 'DNAH7', 'BGN', 'SAE1', 'PLK3', 'UHRF1BP1L', 'TBCB', '
 # communities those genes belong to based on greedy community detection
 communities = [6, 6, 6, 8, 9, 9, 9, 9, 10, 10]
 
+# get all HPO terms associated directly with the gene
+for i in range(len(genes)):
+    gene = genes[i]
+    com = communities[i]
+    out_gene = []
+    out_pro_neighbor = []
+    out_hpo = []
+    out_name = []
+    out_com = []
+    try:
+        hpo_neighbors = nx.neighbors(hpoG, gene)
+    except nx.exception.NetworkXError:
+        print(gene + str(' not in network'))
+        continue
+
+    for h in hpo_neighbors:
+        print(i)
+        out_gene.append(gene)
+        out_pro_neighbor.append('self')
+        out_hpo.append(h)
+        out_name.append(hpoG.nodes[h]['common_name'])
+        out_com.append(com)
+    # append pd to csv
+    df.to_csv('string-hpo-known-associations.csv', mode='a', header=False)
+
+# get all HPO terms associated indirectly with the gene. The terms connected to a neighbor in StringDB
 for i in range(len(genes)):
     gene = genes[i]
     com = communities[i]

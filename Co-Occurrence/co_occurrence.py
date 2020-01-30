@@ -39,6 +39,7 @@ else:
         co.loc[row[1], row[7]] += 1
     print('Pickling co-occurrence matrix for future use')
     pickle.dump(co, open("Data/co_occurrence_pandas.pickle", "wb"))
+    co.to_csv('Co-Occurrence/co_occurrence_matrix.csv')
 
 # remove row and columns with a sum of 20
 rows_drop = []
