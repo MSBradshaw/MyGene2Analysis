@@ -1,47 +1,55 @@
 library(readr)
 library(bipartite)
+args = commandArgs(trailingOnly=TRUE)
 
-#read in the co-occurrence matrix produced by Co-Occurenece/co_occurrence.py
+set.seed(5)
+# read in the co-occurrence matrix produced by Co-Occurenece/co_occurrence.py
 co <- read_csv('../Co-Occurrence/co_occurrence_matrix.csv')
 
 hpos <- colnames(co)
 genes <- co$X1
 
-#combine the genes and hpos as a mapping for information resulting from computerModules
-name_names <- 
+# combine the genes and hpos as a mapping for information resulting from computerModules
+name_names <- c(genes,hpos)
 
-#convert to matrixx and remove gene name column
+# convert to matrixx and remove gene name column
 co_matrix <- co[,2:ncol(co)]
 
-#input data should be a co-occurrence matrix
-#using Beckett's DIRT-LPA, an algorithm intended for community detection 
-#(modularity maximization) in weighted bipartite networks
-#This step may take several hours
+# input data should be a co-occurrence matrix
+# using Beckett's DIRT-LPA, an algorithm intended for community detection 
+# (modularity maximization) in weighted bipartite networks
+# This step may take several hours
 ptm <- proc.time() # start a timer
-res <- computeModules(co_matrix,method="Beckett")
+res <- computeModules(co_matrix,method="Beckett",forceLPA=TRUE)
 print(paste('Beckett run time: ', (proc.time() - ptm))) # print the run time
 
-#extract the important information from the modules matrix
-#see the following for I do this https://www.rdocumentation.org/packages/bipartite/versions/2.11/topics/moduleWeb-class
-#In this format rows now represent communities
-#columns are nodes in the network ordered such that 
-#nodes that were originally rows are first followed by nodes that were origianly columns
+# extract the important information from the modules matrix
+# see the following for I do this https://www.rdocumentation.org/packages/bipartite/versions/2.11/topics/moduleWeb-class
+# In this format rows now represent communities
+# columns are nodes in the network ordered such that 
+# nodes that were originally rows are first followed by nodes that were origianly columns
 community_matrix <- res@modules[-1, -c(1,2) ]
 
-#now get the communities
+# now get the communities
 coms <- list()
 for(i in seq(1,nrow(community_matrix))){
   com <- unique(community_matrix[i,])
   com <- com[com != 0]
-  print(com)
-  coms[[(length(coms) + 1)]] <- com
+  # get the node names for each gene or HPO in the community so they can be looked up in the networkx graph
+  temp <- name_names[com]
+  print(temp)
+  coms[[(length(coms) + 1)]] <- temp
 }
+
+# write modularity and community scores to a file with a commandline argument in the name 
+# for which iteration of bash the loop this script was started in
+filename = paste("outfile",args[1],".txt",sep='')
 coms
-cat(as.character(res@likelihood),append=TRUE,file="outfile.txt")
-cat("\n",append=TRUE,file="outfile.txt")
+cat(as.character(res@likelihood),append=TRUE,file=filename)
+cat("\n",append=TRUE,file=filename)
 for( i in seq(1,length(coms))){
-  cat(paste(coms[[i]], collapse = ','),append=TRUE,file="outfile.txt")
-  cat("\n",append=TRUE,file="outfile.txt")
+  cat(paste(coms[[i]], collapse = ','),append=TRUE,file=filename)
+  cat("\n",append=TRUE,file=filename)
 }
 
 
