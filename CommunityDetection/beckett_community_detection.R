@@ -40,7 +40,6 @@ for(i in seq(1,nrow(community_matrix))){
   print(temp)
   coms[[(length(coms) + 1)]] <- temp
 }
-
 # write modularity and community scores to a file with a commandline argument in the name 
 # for which iteration of bash the loop this script was started in
 filename = paste("outfile",args[1],".txt",sep='')
@@ -51,8 +50,4 @@ for( i in seq(1,length(coms))){
   cat(paste(coms[[i]], collapse = ','),append=TRUE,file=filename)
   cat("\n",append=TRUE,file=filename)
 }
-
-
-
-
 
