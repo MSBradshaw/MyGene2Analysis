@@ -1,6 +1,8 @@
 library(readr)
 library(bipartite)
+args = commandArgs(trailingOnly=TRUE)
 
+set.seed(5)
 #read in the co-occurrence matrix produced by Co-Occurenece/co_occurrence.py
 co <- read_csv('../Co-Occurrence/co_occurrence_matrix.csv')
 
@@ -8,7 +10,7 @@ hpos <- colnames(co)
 genes <- co$X1
 
 #combine the genes and hpos as a mapping for information resulting from computerModules
-name_names <- 
+name_names <- c(genes,hpos)
 
 #convert to matrixx and remove gene name column
 co_matrix <- co[,2:ncol(co)]
@@ -18,7 +20,7 @@ co_matrix <- co[,2:ncol(co)]
 #(modularity maximization) in weighted bipartite networks
 #This step may take several hours
 ptm <- proc.time() # start a timer
-res <- computeModules(co_matrix,method="Beckett")
+res <- computeModules(co_matrix,method="Beckett",forceLPA=TRUE)
 print(paste('Beckett run time: ', (proc.time() - ptm))) # print the run time
 
 #extract the important information from the modules matrix
@@ -33,15 +35,17 @@ coms <- list()
 for(i in seq(1,nrow(community_matrix))){
   com <- unique(community_matrix[i,])
   com <- com[com != 0]
-  print(com)
-  coms[[(length(coms) + 1)]] <- com
+  temp <- name_names[com]
+  print(temp)
+  coms[[(length(coms) + 1)]] <- temp
 }
+filename = paste("outfile",args[1],".txt",sep='')
 coms
-cat(as.character(res@likelihood),append=TRUE,file="outfile.txt")
-cat("\n",append=TRUE,file="outfile.txt")
+cat(as.character(res@likelihood),append=TRUE,file=filename)
+cat("\n",append=TRUE,file=filename)
 for( i in seq(1,length(coms))){
-  cat(paste(coms[[i]], collapse = ','),append=TRUE,file="outfile.txt")
-  cat("\n",append=TRUE,file="outfile.txt")
+  cat(paste(coms[[i]], collapse = ','),append=TRUE,file=filename)
+  cat("\n",append=TRUE,file=filename)
 }
 
 
