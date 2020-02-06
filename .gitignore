@@ -3,3 +3,4 @@ StringDB/*.txt
 protein*
 CommunityDetection/.DS_Store
 .DS_Store/*
+venv/
