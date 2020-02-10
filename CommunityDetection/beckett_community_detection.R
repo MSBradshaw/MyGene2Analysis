@@ -10,7 +10,7 @@ hpos <- colnames(co)
 genes <- co$X1
 
 # combine the genes and hpos as a mapping for information resulting from computerModules
-name_names <- c(genes,hpos)
+name_names <- c(hpos,genes)
 
 # convert to matrixx and remove gene name column
 co_matrix <- co[,2:ncol(co)]
