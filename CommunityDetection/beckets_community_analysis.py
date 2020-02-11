@@ -14,7 +14,7 @@ Finds the best permutation and returns communities as a 2D list.
 
 
 def get_communities():
-    base_name = 'CommunityDetection/Becketts/outfile'
+    base_name = 'CommunityDetection/Becketts-original/outfile'
     best_q = 0.00
     best_file = None
 
@@ -128,7 +128,7 @@ def webweb_plot(g, coms):
     for i in g.nodes:
         name = g.nodes[i]['Name']
         if name in coms_dict.keys():
-            labels[i] = {'isGene': g.nodes[i]['Type'] == 'HPO', 'name': name, 'Community': coms_dict[name]}
+            labels[i] = {'isGene': g.nodes[i]['Type'] == 'HPO', 'name': coms_dict[name], 'Community': coms_dict[name]}
     w = Web(adjacency=nx.to_numpy_array(g), display={'nodes': labels})
     # set some default visualization settings in webweb
     w.display.charge = 50

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --time=3:00:00   # walltime
+#SBATCH --time=5:00:00   # walltime
 #SBATCH --ntasks=1   # number of processor cores (i.e. tasks)
 #SBATCH --nodes=1   # number of nodes
 #SBATCH --mem-per-cpu=8192M   # memory per CPU core
@@ -17,17 +17,16 @@ export PBS_QUEUE=batch
 export OMP_NUM_THREADS=$SLURM_CPUS_ON_NODE
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
-Rscript beckett_community_detection.R $1"a"
-Rscript beckett_community_detection.R $1"b"
-Rscript beckett_community_detection.R $1"c"
-Rscript beckett_community_detection.R $1"d"
-Rscript beckett_community_detection.R $1"e"
-Rscript beckett_community_detection.R $1"f"
-Rscript beckett_community_detection.R $1"g"
-Rscript beckett_community_detection.R $1"h"
-Rscript beckett_community_detection.R $1"i"
-Rscript beckett_community_detection.R $1"j"
-
+Rscript becketts-community-detection-2.R $1"a"
+Rscript becketts-community-detection-2.R $1"b"
+Rscript becketts-community-detection-2.R $1"c"
+Rscript becketts-community-detection-2.R $1"d"
+Rscript becketts-community-detection-2.R $1"e"
+Rscript becketts-community-detection-2.R $1"f"
+Rscript becketts-community-detection-2.R $1"g"
+Rscript becketts-community-detection-2.R $1"h"
+Rscript becketts-community-detection-2.R $1"i"
+Rscript becketts-community-detection-2.R $1"j"
 
 
 
