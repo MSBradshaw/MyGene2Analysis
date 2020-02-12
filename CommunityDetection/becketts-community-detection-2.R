@@ -1,12 +1,10 @@
 library(readr)
-setwd('/Users/michael/PycharmProjects/MyGene2Analysis')
-source("/Users/michael/PycharmProjects/MyGene2Analysis/CommunityDetection/weighted-modularity-LPAwbPLUS/code/R/LPA_wb_plus.R")  #read in functions
-source("/Users/michael/PycharmProjects/MyGene2Analysis/CommunityDetection/weighted-modularity-LPAwbPLUS/code/R/MODULARPLOT.R") #read in plotting function
+source("weighted-modularity-LPAwbPLUS/code/R/LPA_wb_plus.R")  #read in functions
+source("weighted-modularity-LPAwbPLUS/code/R/MODULARPLOT.R") #read in plotting function
 args = commandArgs(trailingOnly=TRUE)
 print(args)
-args = c(1,2,3)
 # read in the co-occurance matrix
-co <- read.csv('/Users/michael/PycharmProjects/MyGene2Analysis/co_occurrence_matrix.csv')
+co <- read.csv('../co_occurrence_matrix.csv')
 # extract gene names
 genes <- co$X
 genes <- as.character(genes)
