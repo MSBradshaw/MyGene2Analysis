@@ -14,7 +14,7 @@ Finds the best permutation and returns communities as a 2D list.
 
 
 def get_communities():
-    base_name = 'CommunityDetection/Becketts-raw/outfile'
+    base_name = 'Becketts-raw/outfile'
     best_q = 0.00
     best_file = None
 
@@ -51,14 +51,14 @@ Either creates the graph from the raw tabular data or reads in a pre-made pickle
 def load_graphs():
     # load the MyGene2 data as a network
     g = None
-    if path.exists("MyGene2NetworkxGraph.pickle") and path.exists("MyGene2NetworkxGraph-no-names.pickle"):
+    if path.exists("../MyGene2NetworkxGraph.pickle") and path.exists("../MyGene2NetworkxGraph-no-names.pickle"):
         print('Loading Pre-made MyGene2NetworkxGraph.pickle')
-        g = pickle.load(open("MyGene2NetworkxGraph.pickle", "rb"))
-        gn = pickle.load(open("MyGene2NetworkxGraph-no-names.pickle", "rb"))
+        g = pickle.load(open("../MyGene2NetworkxGraph.pickle", "rb"))
+        gn = pickle.load(open("../MyGene2NetworkxGraph-no-names.pickle", "rb"))
     else:
         print('Creating MyGene2NetworkxGraph.pickle from stratch')
         # read in the tabular data
-        data = pd.read_csv('Data/my_gene_2_variantes_by_family_tables.csv')
+        data = pd.read_csv('../Data/my_gene_2_variantes_by_family_tables.csv')
 
         # get the number of genes and number of hpos
         genes = list(set(data.iloc[:, 1]))
@@ -105,14 +105,10 @@ def load_graphs():
             g.nodes[i]['Name'] = name
             g.nodes[i]['Type'] = node_type
         gn = g.copy()
-        pickle.dump(gn, open("MyGene2NetworkxGraph-no-names.pickle", "wb"))
+        pickle.dump(gn, open("../MyGene2NetworkxGraph-no-names.pickle", "wb"))
         g = nx.relabel_nodes(g, name_mapping)
-        pickle.dump(g, open("MyGene2NetworkxGraph.pickle", "wb"))
+        pickle.dump(g, open("../MyGene2NetworkxGraph.pickle", "wb"))
     return g, gn
-
-
-communities = get_communities()
-G, Gn = load_graphs()
 
 
 # plot them using webweb
@@ -144,4 +140,8 @@ def webweb_plot(g, coms):
     w.display.gravity = 0.5
     w.show()
 
-webweb_plot(Gn, communities)
+
+if __name__ == "__main__":
+    communities = get_communities()
+    G, Gn = load_graphs()
+    webweb_plot(Gn, communities)
