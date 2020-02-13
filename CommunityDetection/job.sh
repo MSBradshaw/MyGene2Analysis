@@ -17,16 +17,16 @@ export PBS_QUEUE=batch
 export OMP_NUM_THREADS=$SLURM_CPUS_ON_NODE
 
 # LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
-Rscript becketts-community-detection-2.R $1"a"
-Rscript becketts-community-detection-2.R $1"b"
-Rscript becketts-community-detection-2.R $1"c"
-Rscript becketts-community-detection-2.R $1"d"
-Rscript becketts-community-detection-2.R $1"e"
-Rscript becketts-community-detection-2.R $1"f"
-Rscript becketts-community-detection-2.R $1"g"
-Rscript becketts-community-detection-2.R $1"h"
-Rscript becketts-community-detection-2.R $1"i"
-Rscript becketts-community-detection-2.R $1"j"
+Rscript becketts-community-detection.R $1"a"
+Rscript becketts-community-detection.R $1"b"
+Rscript becketts-community-detection.R $1"c"
+Rscript becketts-community-detection.R $1"d"
+Rscript becketts-community-detection.R $1"e"
+Rscript becketts-community-detection.R $1"f"
+Rscript becketts-community-detection.R $1"g"
+Rscript becketts-community-detection.R $1"h"
+Rscript becketts-community-detection.R $1"i"
+Rscript becketts-community-detection.R $1"j"
 
 
 

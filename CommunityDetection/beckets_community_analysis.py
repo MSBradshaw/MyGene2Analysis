@@ -14,7 +14,7 @@ Finds the best permutation and returns communities as a 2D list.
 
 
 def get_communities():
-    base_name = 'CommunityDetection/Becketts-original/outfile'
+    base_name = 'CommunityDetection/Becketts-raw/outfile'
     best_q = 0.00
     best_file = None
 
@@ -118,9 +118,13 @@ G, Gn = load_graphs()
 # plot them using webweb
 def webweb_plot(g, coms):
     # create dictionary of node:community pairs for quick look up
+    print(len(g.nodes))
     coms_dict = {}
     for i in range(len(coms)):
         for c in coms[i]:
+            # this is to control for string reformatting R did...
+            if c[0:3] == 'HP.':
+                c = c.replace('.', ':')
             coms_dict[c] = i
 
     # create metadata labels for plotting
@@ -140,6 +144,4 @@ def webweb_plot(g, coms):
     w.display.gravity = 0.5
     w.show()
 
-
 webweb_plot(Gn, communities)
-# check if HPO terms in mygene2 are associated with genes or related genes
