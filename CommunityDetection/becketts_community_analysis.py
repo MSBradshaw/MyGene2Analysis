@@ -1,11 +1,16 @@
 import pandas as pd
-import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
 from webweb import Web
 import obonet
 import pickle
 from os import path
+import networkx as nx
+
+"""
+import os
+os.chdir('CommunityDetection')
+"""
+
 
 """
 Checks output files from the R script that ran Beckett's LPA community detection for weighted bipartite networks.
@@ -39,6 +44,13 @@ def get_communities():
         else:
             coms.append(line.strip().split(','))
     file.close()
+
+    # fix a formatting error introduced from R
+    for i in range(len(coms)):
+        for j in range(len(coms[i])):
+            if coms[i][j][0:3] == 'HP.':
+                coms[i][j] = coms[i][j].replace('.', ':')
+
     return coms
 
 
@@ -111,10 +123,15 @@ def load_graphs():
     return g, gn
 
 
-# plot them using webweb
+"""
+given a the MyGene2 network and the communities
+plots color nodes by community and plot in WebWeb 
+"""
+
+
 def webweb_plot(g, coms):
     # create dictionary of node:community pairs for quick look up
-    print(len(g.nodes))
+    print('Plotting with WebWeb')
     coms_dict = {}
     for i in range(len(coms)):
         for c in coms[i]:
@@ -141,7 +158,201 @@ def webweb_plot(g, coms):
     w.show()
 
 
+"""
+This function takes data from HPO on genes to phenotype connections, creates a networkx object of the data with the common
+names of the HPO terms as metadata.
+"""
+
+
+def load_gene_to_disease_info():
+    G = nx.DiGraph()
+    if path.exists("gene_to_hpo_with_common_names_network.pickle"):
+        print('Loading Pre-made co-occurrence matrix')
+        G = pickle.load(open("gene_to_hpo_with_common_names_network.pickle", "rb"))
+    else:
+        # the source file was downloaded January 27th 2020 from
+        # http://compbio.charite.de/jenkins/job/hpo.annotations.monthly/lastSuccessfulBuild/artifact/annotation/ALL_SOURCES_ALL_FREQUENCIES_genes_to_phenotype.txt
+        data = pd.read_csv('../ALL_SOURCES_ALL_FREQUENCIES_genes_to_phenotype.txt', sep='\t', skiprows=1)
+        print('Generating gene_to_hpo_with_common_names_network.pickle from scratch')
+        for i in range(data.shape[0]):
+            # create the end
+            G.add_edge(data.iloc[i, 1], data.iloc[i, 3])
+            # give the hpo node a meaning full name
+
+        nx.set_node_attributes(G, None, 'common_name')
+        for i in range(data.shape[0]):
+            G.nodes[data.iloc[i, 3]]['common_name'] = data.iloc[i, 2]
+
+        pickle.dump(G, open('gene_to_hpo_with_common_names_network.pickle', 'wb'))
+    return G
+
+
+"""
+Take in a networkx object, return all the genes in it
+"""
+
+
+def get_genes(G):
+    genes = []
+    for n in G.nodes:
+        if n[0:3] != 'HP:':
+            genes.append(n)
+    return genes
+
+
+"""
+Load the StringDB interaction network and give the node meaningful gene names, not StringDB IDs
+Return the network as a networkx object
+"""
+
+def load_string_db_network():
+    G = None
+    if path.exists('../StringDB/protein_interactions_named.pickle'):
+        print('Loading ../StringDB/protein_interactions_named.pickle')
+        G = pickle.load(open('../StringDB/protein_interactions_named.pickle', 'rb'))
+    else:
+        print('Generating ../StringDB/protein_interactions_named.pickle\nThis may take a few minutes...')
+        # create a black graph to fill
+        G = nx.Graph()
+        # read in the files line by line
+        file = open('../StringDB/9606.protein.actions.v11.0.txt', 'r')
+        first = True
+        for line in file:
+            if first:
+                first = False
+                continue
+            row = line.split('\t')
+            G.add_edge(row[0], row[1])
+        print('Num of nodes ' + str(len(G.nodes)))
+        # load the file that contains the protein names
+        pro_info = pd.read_csv('../StringDB/protein.info.v11.0.txt', sep='\t')
+        pro_info.index = pro_info.loc[:, 'protein_external_id']
+        # create a name mapping to rename the nodes in the network
+        name_mapping = {}
+        for n in list(G.nodes):
+            name_mapping[n] = pro_info.loc[n, 'preferred_name']
+        G = nx.relabel_nodes(G, name_mapping)
+        pickle.dump(G, open('../StringDB/protein_interactions_named.pickle', 'wb'))
+    return G
+
+b = load_string_db_network()
+
+
+
+"""
+Given the MyGene2 Gene-Phenotype graph and the communities
+Return the Genes and which HPOs from their communities are not connected to them
+"""
+
+
+def get_genes_not_connected_to_hpos(Gd, communities):
+    # this data structure will be a dictionary of dictionaries containing gene : lists of unconnected hpos
+    # set up as follows:
+    """
+    {
+        1 (a community):{
+            gene: [ hpos not connected to the gene ],
+            gene: [hpo1,hpo2...]
+        },
+        2: {
+            gene: [hpo1,hpo2...],
+            gene: [hpo1,hpo2...]
+            ...
+        }
+        ...
+    }
+    """
+    communities_genes_unconnected_hpos = {}
+    com_count = -1
+    not_found_count = 0
+    # for each community
+    for c in communities:
+        com_count += 1
+        # get the genes and hpos in the community
+        genes = []
+        hpos = []
+        for n in c:
+            if n[0:3] == 'HP:':
+                hpos.append(n)
+            else:
+                genes.append(n)
+        # check if a gene those hpo neighbors
+        # keep track of the hpos it is not associated with
+        for gene in genes:
+            # get the gene's neighbors from the disease network
+            try:
+                neighbors = nx.neighbors(Gd, gene)
+            except nx.exception.NetworkXError:
+                print('Node not found: ' + str(gene))
+                not_found_count += 1
+                continue
+            unconnected_hpos = [h for h in hpos if h not in neighbors]
+            # store the unconnected HPOs only if there are some
+            if len(unconnected_hpos) > 0:
+                if com_count in communities_genes_unconnected_hpos.keys():
+                    communities_genes_unconnected_hpos[com_count][gene] = unconnected_hpos
+                else:
+                    # else create a new entry in the dictionary
+                    communities_genes_unconnected_hpos[com_count] = {}
+                    communities_genes_unconnected_hpos[com_count][gene] = unconnected_hpos
+        print('Total not found: ' + str(not_found_count))
+    return communities_genes_unconnected_hpos
+
+
+"""
+Given the MyGene2 graph (G) and the Gene-Phenotype graph (Gd)
+Return the Genes not related to connected to HPOs in their communities by any of their neighbors in StringDB
+"""
+
+
+def get_genes_not_connected_to_hpos_via_neighbors(Gd, com_gene_hpo):
+    print("Filtering Based on StringDB")
+    # load the string DB information
+    Gs = load_string_db_network()
+    # for each community
+    not_found_count = 0
+    for c in com_gene_hpo.keys():
+        # for each gene
+        for g in com_gene_hpo[c].keys():
+            # Get the gene's stringDB neighbors
+            neighbors = nx.neighbors(Gs, g)
+            genes_hpos = com_gene_hpo[c][g]
+            # for each neighbor
+            for n in neighbors:
+                # get the neighbor's related HPO terms
+                try:
+                    neighbor_hpos = nx.neighbors(Gd, n)
+                except nx.exception.NetworkXError:
+                    print('Gene neighbors node not found in Gd:' + n)
+                    not_found_count += 1
+                    continue
+                # what things are in the genes_hpos but not in neighbor_hpos? update gene_hpos
+                genes_hpos = [x for x in genes_hpos if x not in neighbor_hpos]
+            com_gene_hpo[c][g] = genes_hpos
+            # if there are not hpos left in that gene, remove it!
+            if len(com_gene_hpo[c][g]) == 0:
+                com_gene_hpo[c].pop(g)
+    print('Total not found count: ' + str(not_found_count))
+    return com_gene_hpo
+
+
+
+
+
+
 if __name__ == "__main__":
+    print('Running Community Detection Analysis from Beckett\'s LPAwb+ algorithm')
+    # get the best best set of beckett communities
     communities = get_communities()
+    # load the networkx objects a named one
     G, Gn = load_graphs()
-    webweb_plot(Gn, communities)
+    # plot the hair ball
+    # webweb_plot(Gn, communities)
+    # read in the known gene to phenotype connections
+    Gd = load_gene_to_disease_info()
+    # make a list of all candidate genes
+    candidate_genes = get_genes(G)
+    # which candidate genes are not connected to the HPOs in their community
+    com_gene_hpo = get_genes_not_connected_to_hpos(Gd, communities)
+    # which candidate genes are not to connected to anything their neighbors in StringDB are not connected to?
+    com_gene_hpo_stringdb_filtered = get_genes_not_connected_to_hpos_via_neighbors(Gd, com_gene_hpo)
