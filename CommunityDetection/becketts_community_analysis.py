@@ -5,12 +5,12 @@ import obonet
 import pickle
 from os import path
 import networkx as nx
+import copy
 
 """
 import os
 os.chdir('CommunityDetection')
 """
-
 
 """
 Checks output files from the R script that ran Beckett's LPA community detection for weighted bipartite networks.
@@ -205,6 +205,7 @@ Load the StringDB interaction network and give the node meaningful gene names, n
 Return the network as a networkx object
 """
 
+
 def load_string_db_network():
     G = None
     if path.exists('../StringDB/protein_interactions_named.pickle'):
@@ -227,6 +228,8 @@ def load_string_db_network():
         # load the file that contains the protein names
         pro_info = pd.read_csv('../StringDB/protein.info.v11.0.txt', sep='\t')
         pro_info.index = pro_info.loc[:, 'protein_external_id']
+        print('Number of rows: ' + str(pro_info.shape))
+        print('Size of unique IDs: ' + str(len(set(pro_info.loc[:, 'protein_external_id']))))
         # create a name mapping to rename the nodes in the network
         name_mapping = {}
         for n in list(G.nodes):
@@ -234,10 +237,9 @@ def load_string_db_network():
         G = nx.relabel_nodes(G, name_mapping)
         pickle.dump(G, open('../StringDB/protein_interactions_named.pickle', 'wb'))
     return G
+load_string_db_network()
 
 b = load_string_db_network()
-
-
 
 """
 Given the MyGene2 Gene-Phenotype graph and the communities
@@ -311,12 +313,21 @@ def get_genes_not_connected_to_hpos_via_neighbors(Gd, com_gene_hpo):
     Gs = load_string_db_network()
     # for each community
     not_found_count = 0
+    not_found_stringdb = 0
+    found_count = 0
+    # make a deep copy of the data so the keys are not being changed in the loop
+    updated_com_gene_hpo = copy.deepcopy(com_gene_hpo)
     for c in com_gene_hpo.keys():
         # for each gene
         for g in com_gene_hpo[c].keys():
             # Get the gene's stringDB neighbors
-            neighbors = nx.neighbors(Gs, g)
-            genes_hpos = com_gene_hpo[c][g]
+            try:
+                neighbors = nx.neighbors(Gs, g)
+            except nx.exception.NetworkXError:
+                print('Gene not found in StringDB:' + g)
+                not_found_stringdb += 1
+                continue
+            genes_hpos = com_gene_hpo[c][g].copy()
             # for each neighbor
             for n in neighbors:
                 # get the neighbor's related HPO terms
@@ -326,18 +337,21 @@ def get_genes_not_connected_to_hpos_via_neighbors(Gd, com_gene_hpo):
                     print('Gene neighbors node not found in Gd:' + n)
                     not_found_count += 1
                     continue
+                else:
+                    found_count += 1
                 # what things are in the genes_hpos but not in neighbor_hpos? update gene_hpos
                 genes_hpos = [x for x in genes_hpos if x not in neighbor_hpos]
-            com_gene_hpo[c][g] = genes_hpos
+            updated_com_gene_hpo[c][g] = genes_hpos
             # if there are not hpos left in that gene, remove it!
             if len(com_gene_hpo[c][g]) == 0:
-                com_gene_hpo[c].pop(g)
+                updated_com_gene_hpo[c].pop(g)
+    # the number of not found may seem high, this is okay. This is the number of neighbors from StringDB not found in
+    # the disease network.
     print('Total not found count: ' + str(not_found_count))
-    return com_gene_hpo
-
-
-
-
+    print('Total found count: ' + str(found_count))
+    print('Total not found in StringDB count: ' + str(not_found_stringdb))
+    found_count
+    return updated_com_gene_hpo
 
 
 if __name__ == "__main__":
@@ -356,3 +370,20 @@ if __name__ == "__main__":
     com_gene_hpo = get_genes_not_connected_to_hpos(Gd, communities)
     # which candidate genes are not to connected to anything their neighbors in StringDB are not connected to?
     com_gene_hpo_stringdb_filtered = get_genes_not_connected_to_hpos_via_neighbors(Gd, com_gene_hpo)
+    # TODO
+    # how many communities are left?
+    # do some stats (figures) on how many are left
+    og_com_sizes = []
+    filter_1_com_sizes = []
+    filter_2_com_sizes = []
+    for i in communities:
+        og_com_sizes.append(len(i))
+    for i in com_gene_hpo:
+        print(i)
+        filter_1_com_sizes.append(len(com_gene_hpo[i]))
+    for i in com_gene_hpo_stringdb_filtered:
+        print(i)
+        filter_2_com_sizes.append(len(com_gene_hpo_stringdb_filtered[i]))
+
+
+
