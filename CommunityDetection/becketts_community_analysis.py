@@ -6,11 +6,16 @@ import pickle
 from os import path
 import networkx as nx
 import copy
+import seaborn as sns
+import matplotlib.pyplot as plt
+plt.margins(x=0.1)
+
 
 """
 import os
 os.chdir('CommunityDetection')
 """
+
 
 """
 Checks output files from the R script that ran Beckett's LPA community detection for weighted bipartite networks.
@@ -340,17 +345,22 @@ def get_genes_not_connected_to_hpos_via_neighbors(Gd, com_gene_hpo):
                 else:
                     found_count += 1
                 # what things are in the genes_hpos but not in neighbor_hpos? update gene_hpos
-                genes_hpos = [x for x in genes_hpos if x not in neighbor_hpos]
+                print(list(neighbor_hpos))
+                print(genes_hpos)
+                print(len(genes_hpos), end=" ")
+
+                genes_hpos = [x for x in genes_hpos if x not in list(neighbor_hpos)]
+                print(len(genes_hpos))
             updated_com_gene_hpo[c][g] = genes_hpos
             # if there are not hpos left in that gene, remove it!
             if len(com_gene_hpo[c][g]) == 0:
+                print('Pop goes the gene!')
                 updated_com_gene_hpo[c].pop(g)
     # the number of not found may seem high, this is okay. This is the number of neighbors from StringDB not found in
     # the disease network.
     print('Total not found count: ' + str(not_found_count))
     print('Total found count: ' + str(found_count))
     print('Total not found in StringDB count: ' + str(not_found_stringdb))
-    found_count
     return updated_com_gene_hpo
 
 
@@ -370,20 +380,35 @@ if __name__ == "__main__":
     com_gene_hpo = get_genes_not_connected_to_hpos(Gd, communities)
     # which candidate genes are not to connected to anything their neighbors in StringDB are not connected to?
     com_gene_hpo_stringdb_filtered = get_genes_not_connected_to_hpos_via_neighbors(Gd, com_gene_hpo)
-    # TODO
-    # how many communities are left?
-    # do some stats (figures) on how many are left
+
+    # plot the distribution of community sizes before filtering, after step 1 of filtering and after 2 filters
     og_com_sizes = []
     filter_1_com_sizes = []
     filter_2_com_sizes = []
     for i in communities:
         og_com_sizes.append(len(i))
     for i in com_gene_hpo:
-        print(i)
         filter_1_com_sizes.append(len(com_gene_hpo[i]))
     for i in com_gene_hpo_stringdb_filtered:
-        print(i)
         filter_2_com_sizes.append(len(com_gene_hpo_stringdb_filtered[i]))
+
+    # Boxplot raw data
+    og_name = 'Unfiltered\n N=' + str(len(og_com_sizes))
+    filter_1_name = 'Direct Filter\n N=' + str(len(filter_1_com_sizes))
+    filter_2_name = 'Neighbor Filtering\n N=' + str(len(filter_2_com_sizes))
+    com_lengths = og_com_sizes + filter_1_com_sizes + filter_2_com_sizes
+    filter_names = [og_name] * len(og_com_sizes) + [filter_1_name] * len(filter_1_com_sizes) + [filter_2_name] * len(filter_2_com_sizes)
+    data = pd.DataFrame({'Size of Communities': com_lengths,
+                         'Filtering':filter_names })
+
+    """
+    The results seen in this figure suggest that filtering by neighbor stringDB interactions does not actually do 
+    anything.
+    """
+    ax1 = sns.boxplot(x="Filtering", y="Size of Communities", data=data)
+    ax1.set_xlabel('')
+    ax1.figure.savefig("filtering-communities-boxplot.png")
+    plt.clf()
 
 
 
