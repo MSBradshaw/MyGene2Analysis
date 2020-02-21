@@ -8,7 +8,6 @@ import networkx as nx
 import copy
 import seaborn as sns
 import matplotlib.pyplot as plt
-plt.margins(x=0.1)
 
 
 """
@@ -365,152 +364,153 @@ def get_genes_not_connected_to_hpos_via_neighbors(Gd, com_gene_hpo):
 
 
 if __name__ == "__main__":
+    plt.margins(x=0.1)
     print('Running Community Detection Analysis from Beckett\'s LPAwb+ algorithm')
     # get the best best set of beckett communities
-communities = get_communities()
-# load the networkx objects a named one
-G, Gn = load_graphs()
-# plot the hair ball
-# webweb_plot(Gn, communities)
-# read in the known gene to phenotype connections
-Gd = load_gene_to_disease_info()
-# make a list of all candidate genes
-candidate_genes = get_genes(G)
-# which candidate genes are not connected to the HPOs in their community
-com_gene_hpo = get_genes_not_connected_to_hpos(Gd, communities)
-# which candidate genes are not to connected to anything their neighbors in StringDB are not connected to?
-com_gene_hpo_stringdb_filtered = get_genes_not_connected_to_hpos_via_neighbors(Gd, com_gene_hpo)
+    communities = get_communities()
+    # load the networkx objects a named one
+    G, Gn = load_graphs()
+    # plot the hair ball
+    # webweb_plot(Gn, communities)
+    # read in the known gene to phenotype connections
+    Gd = load_gene_to_disease_info()
+    # make a list of all candidate genes
+    candidate_genes = get_genes(G)
+    # which candidate genes are not connected to the HPOs in their community
+    com_gene_hpo = get_genes_not_connected_to_hpos(Gd, communities)
+    # which candidate genes are not to connected to anything their neighbors in StringDB are not connected to?
+    com_gene_hpo_stringdb_filtered = get_genes_not_connected_to_hpos_via_neighbors(Gd, com_gene_hpo)
 
-# plot the distribution of community sizes before filtering, after step 1 of filtering and after 2 filters
-og_com_sizes = []
-filter_1_com_sizes = []
-filter_2_com_sizes = []
-# get the number of genes in each community
-for i in communities:
-    len([x for x in i if x[0:3] != 'HP:'])
-    og_com_sizes.append(len([x for x in i if x[0:3] != 'HP:']))
-    #og_com_sizes.append(len(i))
-# get the number of genes in each community
-for i in com_gene_hpo:
-    filter_1_com_sizes.append(len(com_gene_hpo[i]))
+    # plot the distribution of community sizes before filtering, after step 1 of filtering and after 2 filters
+    og_com_sizes = []
+    filter_1_com_sizes = []
+    filter_2_com_sizes = []
+    # get the number of genes in each community
+    for i in communities:
+        len([x for x in i if x[0:3] != 'HP:'])
+        og_com_sizes.append(len([x for x in i if x[0:3] != 'HP:']))
+        #og_com_sizes.append(len(i))
+    # get the number of genes in each community
+    for i in com_gene_hpo:
+        filter_1_com_sizes.append(len(com_gene_hpo[i]))
 
-# get the number of genes in each community
-for i in com_gene_hpo_stringdb_filtered:
-    filter_2_com_sizes.append(len(com_gene_hpo_stringdb_filtered[i]))
+    # get the number of genes in each community
+    for i in com_gene_hpo_stringdb_filtered:
+        filter_2_com_sizes.append(len(com_gene_hpo_stringdb_filtered[i]))
 
-# Boxplot raw data
-og_name = 'Unfiltered\n N=' + str(len(og_com_sizes))
-filter_1_name = 'Direct Filtering\n N=' + str(len(filter_1_com_sizes))
-filter_2_name = 'Neighbor Filtering\n N=' + str(len(filter_2_com_sizes))
-com_lengths = og_com_sizes + filter_1_com_sizes + filter_2_com_sizes
-filter_names = [og_name] * len(og_com_sizes) + [filter_1_name] * len(filter_1_com_sizes) + [filter_2_name] * len(filter_2_com_sizes)
-data = pd.DataFrame({'Genes in each Communities': com_lengths,
-                     'Filtering':filter_names })
+    # Boxplot raw data
+    og_name = 'Unfiltered\n N=' + str(len(og_com_sizes))
+    filter_1_name = 'Direct Filtering\n N=' + str(len(filter_1_com_sizes))
+    filter_2_name = 'Neighbor Filtering\n N=' + str(len(filter_2_com_sizes))
+    com_lengths = og_com_sizes + filter_1_com_sizes + filter_2_com_sizes
+    filter_names = [og_name] * len(og_com_sizes) + [filter_1_name] * len(filter_1_com_sizes) + [filter_2_name] * len(filter_2_com_sizes)
+    data = pd.DataFrame({'Genes in each Communities': com_lengths,
+                         'Filtering':filter_names })
 
-"""
-The results seen in this figure suggest that filtering out genes based on known neighbor interactions with their 
-community's HPO terms does not reduce the number of communities. 
-"""
-ax1 = sns.boxplot(x="Filtering", y="Genes in each Communities", data=data)
-ax1.set_xlabel('')
-ax1.figure.savefig("Becketts_Community_Analysis_Results/filtering-communities-number-of-genes-boxplot.png")
-plt.clf()
-
-
-# plot the number of unique HPOs in each community after filtering
-
-og_com_sizes_g = []
-filter_1_com_sizes_g = []
-filter_2_com_sizes_g = []
-# get the number of unique HPOs in each community
-for i in communities:
-    len([x for x in i if x[0:3] == 'HP:'])
-    og_com_sizes_g.append(len([x for x in i if x[0:3] == 'HP:']))
-
-# get the number of unique HPOs in each community
-for i in com_gene_hpo:
-    hpos = []
-    for h in com_gene_hpo[i]:
-        hpos = hpos + com_gene_hpo[i][h]
-    filter_1_com_sizes_g.append(len(set(hpos)))
+    """
+    The results seen in this figure suggest that filtering out genes based on known neighbor interactions with their 
+    community's HPO terms does not reduce the number of communities. 
+    """
+    ax1 = sns.boxplot(x="Filtering", y="Genes in each Communities", data=data)
+    ax1.set_xlabel('')
+    ax1.figure.savefig("Becketts_Community_Analysis_Results/filtering-communities-number-of-genes-boxplot.png")
+    plt.clf()
 
 
-# get the number of unique HPOs in each community
-for i in com_gene_hpo_stringdb_filtered:
-    hpos = []
-    for h in com_gene_hpo_stringdb_filtered[i]:
-        hpos = hpos + com_gene_hpo_stringdb_filtered[i][h]
-    filter_2_com_sizes_g.append(len(set(hpos)))
+    # plot the number of unique HPOs in each community after filtering
 
-
-# Boxplot of the number of unique hpos in each community
-og_name = 'Unfiltered\n N=' + str(len(og_com_sizes_g))
-filter_1_name = 'Direct Filtering\n N=' + str(len(filter_1_com_sizes_g))
-filter_2_name = 'Neighbor Filtering\n N=' + str(len(filter_2_com_sizes_g))
-com_lengths = og_com_sizes_g + filter_1_com_sizes_g + filter_2_com_sizes_g
-filter_names = [og_name] * len(og_com_sizes_g) + [filter_1_name] * len(filter_1_com_sizes_g) + [filter_2_name] * len(filter_2_com_sizes_g)
-data = pd.DataFrame({'Unique HPOs in each Communities': com_lengths,
-                     'Filtering':filter_names })
-
-"""
-The results seen in this figure suggest that filtering out genes based on known neighbor interactions with their 
-community's HPO terms does not reduce the number of communities. 
-"""
-ax1 = sns.boxplot(x="Filtering", y="Unique HPOs in each Communities", data=data)
-ax1.set_xlabel('')
-ax1.figure.savefig("Becketts_Community_Analysis_Results/filtering-communities-number-of-hpos-blox.png")
-plt.clf()
-
-ax1 = sns.violinplot(x="Filtering", y="Unique HPOs in each Communities", data=data,split=True,
-                    scale="count", inner="stick")
-ax1.set_xlabel('')
-ax1.figure.savefig("Becketts_Community_Analysis_Results/filtering-communities-number-of-hpos-violin.png")
-plt.clf()
-
-# plot the number of unique HPOs in each GENE after filtering
-
-og_com_sizes_g = []
-filter_1_com_sizes_g = []
-filter_2_com_sizes_g = []
-# get the number of unique HPOs in each gene, because all genes have the same HPO at this points, I just add the legnth
-# of HPOs in the community the number of times there are genes
-for i in communities:
-    for g in [x for x in i if x[0:3] != 'HP:']:
+    og_com_sizes_g = []
+    filter_1_com_sizes_g = []
+    filter_2_com_sizes_g = []
+    # get the number of unique HPOs in each community
+    for i in communities:
+        len([x for x in i if x[0:3] == 'HP:'])
         og_com_sizes_g.append(len([x for x in i if x[0:3] == 'HP:']))
 
-# get the number of HPOs in each gene
-for i in com_gene_hpo:
-    for h in com_gene_hpo[i]:
-        hpos = com_gene_hpo[i][h]
+    # get the number of unique HPOs in each community
+    for i in com_gene_hpo:
+        hpos = []
+        for h in com_gene_hpo[i]:
+            hpos = hpos + com_gene_hpo[i][h]
         filter_1_com_sizes_g.append(len(set(hpos)))
 
-# get the number of HPOs in each gene
-for i in com_gene_hpo_stringdb_filtered:
-    for h in com_gene_hpo_stringdb_filtered[i]:
-        hpos = com_gene_hpo_stringdb_filtered[i][h]
+
+    # get the number of unique HPOs in each community
+    for i in com_gene_hpo_stringdb_filtered:
+        hpos = []
+        for h in com_gene_hpo_stringdb_filtered[i]:
+            hpos = hpos + com_gene_hpo_stringdb_filtered[i][h]
         filter_2_com_sizes_g.append(len(set(hpos)))
 
 
-# Boxplot of the number of unique hpos in each community
-og_name = 'Unfiltered\n N=' + str(len(og_com_sizes_g))
-filter_1_name = 'Direct Filtering\n N=' + str(len(filter_1_com_sizes_g))
-filter_2_name = 'Neighbor Filtering\n N=' + str(len(filter_2_com_sizes_g))
-com_lengths = og_com_sizes_g + filter_1_com_sizes_g + filter_2_com_sizes_g
-filter_names = [og_name] * len(og_com_sizes_g) + [filter_1_name] * len(filter_1_com_sizes_g) + [filter_2_name] * len(filter_2_com_sizes_g)
-data = pd.DataFrame({'HPOs Associated With Each Gene': com_lengths,
-                     'Filtering':filter_names })
+    # Boxplot of the number of unique hpos in each community
+    og_name = 'Unfiltered\n N=' + str(len(og_com_sizes_g))
+    filter_1_name = 'Direct Filtering\n N=' + str(len(filter_1_com_sizes_g))
+    filter_2_name = 'Neighbor Filtering\n N=' + str(len(filter_2_com_sizes_g))
+    com_lengths = og_com_sizes_g + filter_1_com_sizes_g + filter_2_com_sizes_g
+    filter_names = [og_name] * len(og_com_sizes_g) + [filter_1_name] * len(filter_1_com_sizes_g) + [filter_2_name] * len(filter_2_com_sizes_g)
+    data = pd.DataFrame({'Unique HPOs in each Communities': com_lengths,
+                         'Filtering':filter_names })
 
-"""
-The results seen in this figure suggest that filtering out genes based on known neighbor interactions with their 
-community's HPO terms does not reduce the number of communities. 
-"""
-ax1 = sns.boxplot(x="Filtering", y="HPOs Associated With Each Gene", data=data)
-ax1.set_xlabel('')
-ax1.figure.savefig("Becketts_Community_Analysis_Results/filtering-communities-hpos-per-gene-boxplot.png")
-plt.clf()
+    """
+    The results seen in this figure suggest that filtering out genes based on known neighbor interactions with their 
+    community's HPO terms does not reduce the number of communities. 
+    """
+    ax1 = sns.boxplot(x="Filtering", y="Unique HPOs in each Communities", data=data)
+    ax1.set_xlabel('')
+    ax1.figure.savefig("Becketts_Community_Analysis_Results/filtering-communities-number-of-hpos-blox.png")
+    plt.clf()
 
-ax1 = sns.violinplot(x="Filtering", y="HPOs Associated With Each Gene", data=data,split=True,
-                    scale="count", inner="stick")
-ax1.set_xlabel('')
-ax1.figure.savefig("Becketts_Community_Analysis_Results/filtering-communities-hpos-per-gene-violin.png")
-plt.clf()
+    ax1 = sns.violinplot(x="Filtering", y="Unique HPOs in each Communities", data=data,split=True,
+                        scale="count", inner="stick")
+    ax1.set_xlabel('')
+    ax1.figure.savefig("Becketts_Community_Analysis_Results/filtering-communities-number-of-hpos-violin.png")
+    plt.clf()
+
+    # plot the number of unique HPOs in each GENE after filtering
+
+    og_com_sizes_g = []
+    filter_1_com_sizes_g = []
+    filter_2_com_sizes_g = []
+    # get the number of unique HPOs in each gene, because all genes have the same HPO at this points, I just add the legnth
+    # of HPOs in the community the number of times there are genes
+    for i in communities:
+        for g in [x for x in i if x[0:3] != 'HP:']:
+            og_com_sizes_g.append(len([x for x in i if x[0:3] == 'HP:']))
+
+    # get the number of HPOs in each gene
+    for i in com_gene_hpo:
+        for h in com_gene_hpo[i]:
+            hpos = com_gene_hpo[i][h]
+            filter_1_com_sizes_g.append(len(set(hpos)))
+
+    # get the number of HPOs in each gene
+    for i in com_gene_hpo_stringdb_filtered:
+        for h in com_gene_hpo_stringdb_filtered[i]:
+            hpos = com_gene_hpo_stringdb_filtered[i][h]
+            filter_2_com_sizes_g.append(len(set(hpos)))
+
+
+    # Boxplot of the number of unique hpos in each community
+    og_name = 'Unfiltered\n N=' + str(len(og_com_sizes_g))
+    filter_1_name = 'Direct Filtering\n N=' + str(len(filter_1_com_sizes_g))
+    filter_2_name = 'Neighbor Filtering\n N=' + str(len(filter_2_com_sizes_g))
+    com_lengths = og_com_sizes_g + filter_1_com_sizes_g + filter_2_com_sizes_g
+    filter_names = [og_name] * len(og_com_sizes_g) + [filter_1_name] * len(filter_1_com_sizes_g) + [filter_2_name] * len(filter_2_com_sizes_g)
+    data = pd.DataFrame({'HPOs Associated With Each Gene': com_lengths,
+                         'Filtering':filter_names })
+
+    """
+    The results seen in this figure suggest that filtering out genes based on known neighbor interactions with their 
+    community's HPO terms does not reduce the number of communities. 
+    """
+    ax1 = sns.boxplot(x="Filtering", y="HPOs Associated With Each Gene", data=data)
+    ax1.set_xlabel('')
+    ax1.figure.savefig("Becketts_Community_Analysis_Results/filtering-communities-hpos-per-gene-boxplot.png")
+    plt.clf()
+
+    ax1 = sns.violinplot(x="Filtering", y="HPOs Associated With Each Gene", data=data,split=True,
+                        scale="count", inner="stick")
+    ax1.set_xlabel('')
+    ax1.figure.savefig("Becketts_Community_Analysis_Results/filtering-communities-hpos-per-gene-violin.png")
+    plt.clf()
