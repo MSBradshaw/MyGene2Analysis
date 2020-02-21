@@ -2,6 +2,7 @@ from becketts_community_analysis import get_communities, load_graphs
 from webweb import Web
 import networkx as nx
 import numpy as np
+import copy
 
 """
 import os
@@ -100,27 +101,72 @@ def get_gene_neighbors_of_gene(G, gene, community):
     # return just the 1 hop neighbors that are in the community
     return [x for x in genes if x in community]
 
+"""
+Given a dictionary, sorting it by the length of teh values
+Taken from: https://stackoverflow.com/questions/16868457/python-sorting-dictionary-by-length-of-values
+But it has been modified...
+"""
+
+
+def sort_by_values_len(dict):
+    dict_len= {key: len(value) for key, value in dict.items()}
+    import operator
+    sorted_key_list = sorted(dict_len.items(), key=operator.itemgetter(1), reverse=True)
+    sorted_dict = {item[0]: dict[item[0]] for item in sorted_key_list}
+    return sorted_dict
+
 
 """
 Given the named networkx object and the community of interest (list)
 Returns the "strong" one-mode projection of the network
-When I say strong I mean that all genes in the network as neighbors of each other in a one-mode projection
+When I say strong I mean that all genes in the network are neighbors of each other in a one-mode projection
 """
 
 
 def strong_one_mode_projection(G,community):
     # make a dict of each gene and its neighbors
     gene_neighbors = {}
+    for node in community:
+        if node[0:3] != 'HP:':
+            # it is a gene
+            gene_neighbors[node] = get_gene_neighbors_of_gene(G,node,community)
+    # sort the dictionary
+    gene_neighbors = sort_by_values_len(gene_neighbors)
+    changed = True
+    com_genes = [x for x in community if x[0:3] != 'HP:']
+    # while there are still nodes being remove from the matrix
+    while changed:
+        changed = False
+        new_gene_neighbors = copy.deepcopy(gene_neighbors)
+        # for each node in the dictionary
+        for node in gene_neighbors:
+            # get the nodes that are in the community but not in the gene's neighborhood
+            not_in_neighborhood = [x for x in com_genes if x not in gene_neighbors[node]]
+            # destroy nodes not in the neighborhood
+            for gene in not_in_neighborhood:
+                if gene in new_gene_neighbors.keys():
+                    new_gene_neighbors.pop(gene)
+                    changed = True
+        gene_neighbors = copy.deepcopy(new_gene_neighbors)
+
+    # remove nodes from each gene's neighbors that are not in the keys
+    for key in gene_neighbors:
+        gene_neighbors[key] = [x for x in gene_neighbors[key] if x in gene_neighbors.keys()]
+
+    # re-put together the community but with on the real strong genes
+    hpos = [x for x in community if x[0:3] == 'HP:']
+    new_com = hpos + list(gene_neighbors.keys())
+    return new_com
 
 
 
 if __name__ == "__main__":
     print('Properties of Communities')
-communities = get_communities()
-G, Gn = load_graphs()
+    communities = get_communities()
+    G, Gn = load_graphs()
 
-plot_communities_one_by_one(Gn, communities)
+    #plot_communities_one_by_one(Gn, communities)
 
-plot_single_community_webweb(Gn,communities,10)
-
-get_gene_neighbors_of_gene(G, 'SATB2', communities[10])
+    #plot_single_community_webweb(Gn,communities,10)
+    print(len([x for x in communities[10] if x[0:3] != 'HP:']))
+    print(len([x for x in strong_one_mode_projection(G, communities[10]) if x[0:3] != 'HP:']))
