@@ -1,14 +1,16 @@
-from becketts_community_analysis import get_communities, load_graphs
+from Becketts_Community_Analysis_Results.becketts_community_analysis import get_communities, load_graphs
 from webweb import Web
 import networkx as nx
 import numpy as np
 import copy
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 """
 import os
-os.chdir('CommunityDetection')
+os.chdir('CommunityDetection/Strong-One-Mode-Filtering-Results')
 """
-
 
 """
 Given the networkx object (with nodes numbered, not named), the community 2D list and the index of the community of 
@@ -57,7 +59,7 @@ def plot_single_community_webweb(g, coms, com):
                              'Community': coms_dict[name]}
 
     # plot it using webweb
-    w = Web(adjacency=nx.to_numpy_array(subgraph),display={'nodes': labels})
+    w = Web(adjacency=nx.to_numpy_array(subgraph), display={'nodes': labels})
     # set some default visualization settings in webweb
     w.display.charge = 50
     w.display.sizeBy = 'degree'
@@ -101,6 +103,7 @@ def get_gene_neighbors_of_gene(G, gene, community):
     # return just the 1 hop neighbors that are in the community
     return [x for x in genes if x in community]
 
+
 """
 Given a dictionary, sorting it by the length of teh values
 Taken from: https://stackoverflow.com/questions/16868457/python-sorting-dictionary-by-length-of-values
@@ -109,7 +112,7 @@ But it has been modified...
 
 
 def sort_by_values_len(dict):
-    dict_len= {key: len(value) for key, value in dict.items()}
+    dict_len = {key: len(value) for key, value in dict.items()}
     import operator
     sorted_key_list = sorted(dict_len.items(), key=operator.itemgetter(1), reverse=True)
     sorted_dict = {item[0]: dict[item[0]] for item in sorted_key_list}
@@ -123,13 +126,13 @@ When I say strong I mean that all genes in the network are neighbors of each oth
 """
 
 
-def strong_one_mode_projection(G,community):
+def strong_one_mode_projection(G, community):
     # make a dict of each gene and its neighbors
     gene_neighbors = {}
     for node in community:
         if node[0:3] != 'HP:':
             # it is a gene
-            gene_neighbors[node] = get_gene_neighbors_of_gene(G,node,community)
+            gene_neighbors[node] = get_gene_neighbors_of_gene(G, node, community)
     # sort the dictionary
     gene_neighbors = sort_by_values_len(gene_neighbors)
     changed = True
@@ -149,15 +152,89 @@ def strong_one_mode_projection(G,community):
                     changed = True
         gene_neighbors = copy.deepcopy(new_gene_neighbors)
 
-    # remove nodes from each gene's neighbors that are not in the keys
-    for key in gene_neighbors:
-        gene_neighbors[key] = [x for x in gene_neighbors[key] if x in gene_neighbors.keys()]
-
     # re-put together the community but with on the real strong genes
     hpos = [x for x in community if x[0:3] == 'HP:']
     new_com = hpos + list(gene_neighbors.keys())
+
+    # make a subgraph of the community
+    sub = nx.subgraph(G,new_com)
+    # filter out HPOs that do not connect genes
+    hpos = [x for x in hpos if sub.degree(x) > 1]
+
+    # make final community
+    new_com = hpos + list(gene_neighbors.keys())
+
     return new_com
 
+
+"""
+Given the named networkx object and 2D community list
+Return a filtered version of communities where only genes that are all neighbors or each other remain
+"""
+
+
+def strong_one_mode_filter(G, communities):
+    new_communities = copy.deepcopy(communities)
+    for i in range(len(communities)):
+        com = communities[i]
+        print("Com: " + str(i))
+        print('Pre: ' + str(len([x for x in com if x[0:3] != 'HP:'])))
+        new_communities[i] = strong_one_mode_projection(G, com)
+        print('Post: ' + str(len([x for x in new_communities[i] if x[0:3] != 'HP:'])))
+    return new_communities
+
+
+"""
+Given a 2D list of the communities pre and post filtering to a strong 1-mode projection
+Makes 2 violin plots of the information, one of genes and one of HPOs
+"""
+
+
+def plot_communities_sizes_pre_and_post_filtering(communities_pre, communities_post):
+    print('plotting community sizes')
+    # get the number of genes in each community but filter out communites with less than 2 genes in them
+    pre_sizes = [len([node for node in c if node[0:3] != 'HP:']) for c in communities_pre
+                 if len([node for node in c if node[0:3] != 'HP:']) >= 2]
+    post_sizes = [len([node for node in c if node[0:3] != 'HP:']) for c in communities_post
+                  if len([node for node in c if node[0:3] != 'HP:']) >= 2]
+
+    # get the number of HPOs in each community
+    pre_sizes_hpo = [len([node for node in c if node[0:3] == 'HP:']) for c in communities_pre
+                 if len([node for node in c if node[0:3] == 'HP:']) >= 2]
+    post_sizes_hpo = [len([node for node in c if node[0:3] == 'HP:']) for c in communities_post
+                  if len([node for node in c if node[0:3] == 'HP:']) >= 2]
+
+    print(pre_sizes)
+    print(post_sizes)
+
+    pre_name = 'Pre Filtering\n N=' + str(len(pre_sizes))
+    post_name = 'Post Filtering\n N=' + str(len(post_sizes))
+
+    com_lengths = pre_sizes + post_sizes
+    filter_names = [pre_name] * len(pre_sizes) + [post_name] * len(post_sizes)
+    data = pd.DataFrame({'Genes in each Communities': com_lengths,
+                         'Filtering': filter_names})
+
+    ax1 = sns.violinplot(x="Filtering", y="Genes in each Communities", data=data, split=True,
+                         scale="count", inner="stick")
+    ax1.set_xlabel('')
+    ax1.figure.savefig("strong-one-mode-filter-Gene-violin.png")
+    plt.clf()
+
+
+    pre_name = 'Pre Filtering\n N=' + str(len(pre_sizes_hpo))
+    post_name = 'Post Filtering\n N=' + str(len(post_sizes_hpo))
+
+    com_lengths = pre_sizes_hpo + post_sizes_hpo
+    filter_names = [pre_name] * len(pre_sizes_hpo) + [post_name] * len(post_sizes_hpo)
+    data = pd.DataFrame({'HPO in each Communities': com_lengths,
+                         'Filtering': filter_names})
+
+    ax1 = sns.violinplot(x="Filtering", y="HPO in each Communities", data=data, split=True,
+                         scale="count", inner="stick")
+    ax1.set_xlabel('')
+    ax1.figure.savefig("strong-one-mode-filter-HPO-violin.png")
+    plt.clf()
 
 
 if __name__ == "__main__":
@@ -165,8 +242,8 @@ if __name__ == "__main__":
     communities = get_communities()
     G, Gn = load_graphs()
 
-    #plot_communities_one_by_one(Gn, communities)
-
-    #plot_single_community_webweb(Gn,communities,10)
-    print(len([x for x in communities[10] if x[0:3] != 'HP:']))
-    print(len([x for x in strong_one_mode_projection(G, communities[10]) if x[0:3] != 'HP:']))
+    # plot_communities_one_by_one(Gn, communities)
+    c2 = strong_one_mode_filter(G, communities)
+    plot_single_community_webweb(G,communities,10)
+    plot_single_community_webweb(G, c2, 10)
+    plot_communities_sizes_pre_and_post_filtering(communities, c2)

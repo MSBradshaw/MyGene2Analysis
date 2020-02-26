@@ -1,5 +1,5 @@
 import pickle
-from becketts_community_analysis import get_communities
+from Becketts_Community_Analysis_Results.becketts_community_analysis import get_communities
 import seaborn as sns
 import pandas as pd
 import numpy as np
