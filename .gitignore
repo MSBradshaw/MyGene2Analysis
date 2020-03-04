@@ -7,3 +7,8 @@ venv/
 weighted-modularity-LPAwbPLUS/
 .Rhistory
 __pycache__/
+*.gz
+*.gct
+HUMAN_9606_id_gene_name_mapping.txt
+.DS_Store/
+GTEx.pickle
