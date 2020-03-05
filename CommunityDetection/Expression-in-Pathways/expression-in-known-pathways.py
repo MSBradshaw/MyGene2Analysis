@@ -238,7 +238,10 @@ def get_expression_for_all_genes(reactome, gtex):
             if exp is None:
                 exp = pickle.load(open(f, 'rb'))
             else:
-                exp = pd.concat([exp, pickle.load(open(f, 'rb'))], ignore_index=True, sort=False)
+                try:
+                    exp = pd.concat([exp, pickle.load(open(f, 'rb'))], ignore_index=True, sort=False)
+                except FileNotFoundError:
+                    print('File Does Not Exist: ' + f)
         # remove the dumpy filler data
         exp = exp.loc[exp['pathway'] != 'delete']
         print('done')
