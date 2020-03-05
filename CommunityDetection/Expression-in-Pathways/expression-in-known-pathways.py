@@ -174,6 +174,9 @@ def get_tabular_expression_data(pathways):
     if isinstance(pathways, list):
         file = pathways[1]
         pathways = pathways[0]
+        if path.exists(file):
+            print('File Exists: ' + file)
+            return
     else:
         print('not list' + str(type(pathways)))
 
@@ -188,12 +191,16 @@ def get_tabular_expression_data(pathways):
         for gene in pathways[p]:
             # get each of its expression values
             try:
-                gene_exp = gtex.loc[gene]
-                gene_exp.loc['pathway'] = p
-                exp_data.loc[exp_data.shape[0]] = gene_exp
-            except KeyError:
-                print(gene + " not found in GTEx")
-                not_in_gtex_count += 1
+                try:
+                    gene_exp = gtex.loc[gene]
+                    gene_exp.loc['pathway'] = p
+                    exp_data.loc[exp_data.shape[0]] = gene_exp
+                except KeyError:
+                    print(gene + " not found in GTEx")
+                    not_in_gtex_count += 1
+            except ValueError:
+                print('Row Error: ' + str(p))
+                return None
 
     print('Not found in GTEx Count: ' + str(not_in_gtex_count))
     print("pickling " + file)
@@ -218,7 +225,7 @@ def get_expression_for_all_genes(reactome, gtex):
         print('Generating Gene Expression From Scratch this may take a while...')
         start = time.time()
         # do this in parallel, with all but 2 threads available (so I can still do other things while it runs)
-        pool = mp.Pool(processes=(mp.cpu_count() - 2))
+        pool = mp.Pool(processes=40)
         # create pairs of parameters to be used for each parallel task,
         # each one will get 1 pathway as a dictionary and True
         # (which will tell the function to use the global variable EXPRESSION_GLOBAL instead of returning)
