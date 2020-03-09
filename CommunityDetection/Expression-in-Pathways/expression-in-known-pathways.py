@@ -9,17 +9,13 @@ import numpy as np
 import random
 import copy
 import time
-# import pickle4reducer
 import multiprocessing as mp
-
-# ctx = mp.get_context()
-# ctx.reducer = pickle4reducer.Pickle4Reducer()
+from Becketts_Community_Analysis_Results.becketts_community_analysis import get_communities, load_graphs, \
+    load_string_db_network, load_jenkins_gene_to_pheno
+from sklearn.decomposition import PCA
 
 # just temporarily
 GTEX_GLOBAL = None
-
-# just temporarily
-EXPRESSION_GLOBAL = None
 
 """
 import os
@@ -99,7 +95,7 @@ Return a 2D list of pathways from reactome
 """
 
 
-def get_pathways(reactome, number_of_pathways):
+def get_pathways(reactome, number_of_pathways, seed=0):
     # get all pathways
     pathways = {}
     for node in reactome.nodes:
@@ -110,7 +106,7 @@ def get_pathways(reactome, number_of_pathways):
         print('returning all pathways')
         return pathways
     # choose 20 pathways at "random"
-    random.seed(0)
+    random.seed(seed)
     # select random key indexes
     randos = [random.randint(0, len(pathways)) for p in range(0, number_of_pathways)]
     path_keys = list(pathways.keys())
@@ -161,6 +157,16 @@ def plot_pathway_sizes(reactome):
 
 
 """
+Given a pandas DataFrame
+Return the same DataFrame but without the rows labeled delete
+"""
+
+
+def remove_filler_rows(df):
+    return df[df['pathway'] != 'delete']
+
+
+"""
 Given a dictionary of pathways and the GTEx data 
 Return a Pandas DataFrame formated like so:
 Gene,   Pathway,    Tissue1,    Tissue2, ...
@@ -204,7 +210,7 @@ def get_tabular_expression_data(pathways):
 
     print('Not found in GTEx Count: ' + str(not_in_gtex_count))
     print("pickling " + file)
-    pickle.dump(exp_data, open(file, 'wb'), protocol=4)
+    pickle.dump(remove_filler_rows(exp_data), open(file, 'wb'), protocol=4)
     return None
 
 
@@ -214,7 +220,7 @@ Return a Pandas DataFrame of the Gene Expression data of all Genes, this is a la
 """
 
 
-def get_expression_for_all_genes(reactome, gtex):
+def get_expression_for_all_genes(reactome):
     # -1 will return all pathways
     paths = get_pathways(reactome, -1)
     expression_pickle_path = 'all-genes-expression-pd.pickle'
@@ -249,17 +255,159 @@ def get_expression_for_all_genes(reactome, gtex):
         print(exp.shape)
         print('Generating took ' + str(time.time() - start))
         # protocol 4 is so pickle can file objects over the size of 4gb
+        exp = remove_filler_rows(exp)
         pickle.dump(exp, open(expression_pickle_path, 'wb'), protocol=4)
         return exp
 
 
-# TODO get specific pathways to plot
+"""
+Given the reactome
+Return the median gene expressions per tissue table from GTEx but of only the genes found in MyGene2
+Deletes from memory GTEX_GLOBAL
+"""
 
+
+def get_reduced_gtex(reactome):
+    filepath = 'gtex-pandas-mygene2-genes-only.pickle'
+    global GTEX_GLOBAL
+    if path.exists(filepath) and False:
+        print('Loading Reduced GTEX')
+        GTEX_GLOBAL = None
+        return pickle.load(open(filepath, 'rb'))
+    else:
+        print('Generating Reduced GTEX')
+        exp = get_expression_for_all_genes(reactome)
+        # load mygene2
+        G, Gn = load_graphs()
+        genes = [x for x in G.nodes if x[0:3] != 'HP:']
+        exp.index = exp['Description']
+        GTEX_GLOBAL = None
+        exp = exp.loc[genes]
+        exp = remove_filler_rows(exp)
+        pickle.dump(exp, open(filepath, 'wb'), protocol=4)
+        return exp
+
+
+"""
+Given a pandas DataFrame with samples as rows and variables as columns
+Return a pandas DataFrame of the first 5 principle components
+"""
+
+
+def get_principle_components(df):
+    pca = PCA(n_components=5)
+    df = df.fillna(0)
+    data = df.iloc[:, 3:].T
+    pca.fit(data)
+    pc_df = pd.DataFrame(pca.components_.T)
+    pc_df.columns = ['PC1 ' + str(round(pca.explained_variance_ratio_[0] * 100, 2)) + '%',
+                     'PC2 ' + str(round(pca.explained_variance_ratio_[1] * 100, 2)) + '%',
+                     'PC3 ' + str(round(pca.explained_variance_ratio_[2] * 100, 2)) + '%',
+                     'PC4 ' + str(round(pca.explained_variance_ratio_[3] * 100, 2)) + '%',
+                     'PC5 ' + str(round(pca.explained_variance_ratio_[4] * 100, 2)) + '%']
+    pc_df.insert(0, 'Name', df.index)
+    pc_df.insert(1, 'pathway', df['pathway'].to_list())
+    pc_df.insert(2, 'Description', df['Description'].to_list())
+    return pc_df
+
+
+"""
+Given the reactome 
+Returns a pandas DataFrame of the first 5 principle components from the reduced gtex data
+"""
+
+
+def get_reduced_gtex_pca(reactome):
+    filepath = 'gtex-reduced-pandas-pca.pickle'
+    if path.exists(filepath) and False:
+        print('Loading Reduced PCA')
+        return pickle.load(open(filepath, 'rb'))
+    else:
+        print('Creating Reduced PCA')
+        exp = get_reduced_gtex(reactome)
+        e2 = get_principle_components(exp)
+        pickle.dump(e2, open(filepath, 'wb'), protocol=4)
+        return e2
+
+
+"""
+Given the reactome
+Returns a pandas DataFrame of the first 5 principle components from the gtex data
+"""
+
+
+def get_gtex_pca(reactome):
+    filepath = 'gtex-pandas-pca.pickle'
+    if path.exists(filepath) and False:
+        print('Loading PCA')
+        return pickle.load(open(filepath, 'rb'))
+    else:
+        print('Creating PCA')
+        exp = get_expression_for_all_genes(reactome)
+        pca = PCA(n_components=5)
+        exp = exp.fillna(0)
+        data = exp.iloc[:, 3:].T
+        pca.fit(data)
+        e2 = pd.DataFrame(pca.components_.T)
+        e2.columns = ['PC1 ' + str(round(pca.explained_variance_ratio_[0] * 100, 2)) + '%',
+                      'PC2 ' + str(round(pca.explained_variance_ratio_[1] * 100, 2)) + '%',
+                      'PC3 ' + str(round(pca.explained_variance_ratio_[2] * 100, 2)) + '%',
+                      'PC4 ' + str(round(pca.explained_variance_ratio_[3] * 100, 2)) + '%',
+                      'PC5 ' + str(round(pca.explained_variance_ratio_[4] * 100, 2)) + '%']
+        e2.insert(0, 'Name', exp.index)
+        e2.insert(1, 'pathway', exp['pathway'].to_list())
+        e2.insert(2, 'Description', exp['Description'].to_list())
+        pickle.dump(e2, open(filepath, 'wb'), protocol=4)
+        return e2
+
+
+"""
+Given a set of pathways and the reactome networkx object
+Make a PCA plot of the given expression data
+"""
+
+
+def pca_plot(pathways, reactome):
+    print('Making PCA Plot')
+    # load each individual community in
+    raw_gtex = None
+    for p in pathways:
+        if raw_gtex is None:
+            raw_gtex = pickle.load(open('Pathway-Pickles/' + p + '.pickle', 'rb'))
+        else:
+            raw_gtex = raw_gtex.append(pickle.load(open('Pathway-Pickles/' + p + '.pickle', 'rb')))
+    raw_gtex = remove_filler_rows(raw_gtex)
+    # get the PC's of the raw_gtex data
+    pca = get_principle_components(raw_gtex)
+    pca.insert(3, 'pathway-name', 'No Info')
+    # TODO this part does not work..... from here to end of function
+    # get the reactome info for each path way so they have meaningful names
+    # create a mapping of the names
+    pathway_names = {}
+    for p in set(pca['pathway']):
+        pathway_names[p] = reactome.nodes[p]['Info']
+    # assign the meaning full names
+    print(pca.columns)
+    for i in range(pca.shape[0]):
+        print(pca.iloc[i, 1])
+        pca.iloc[i, 3] = pathway_names[pca.iloc[i, 1]]
+    # the data from pca that is path of the pathways of interest
+    data = pca[pca['pathway'] == pathways[0]]
+    for i in range(1, len(pathways)):
+        data = data.append(pca[pca['pathway'] == pathways[i]])
+
+    # plot it!
+    ax = sns.scatterplot(x=data.columns[4], y=data.columns[5], data=data, hue="pathway-name")
+    plt.show()
+    plt.clf()
+    ax = sns.scatterplot(x=data.columns[4], y=data.columns[6], data=data, hue="pathway-name")
+    plt.show()
 
 reactome = load_reactome()
 GTEX_GLOBAL = load_gtex()
 # plot_pathway_sizes(reactome)
-# paths = get_pathways(reactome, 5)
-# e = get_tabular_expression_data(paths, gtex)
-e = get_expression_for_all_genes(reactome, GTEX_GLOBAL)
-
+paths = get_pathways(reactome, 5, 2)
+path_names = list(paths.keys())
+# e = get_reduced_gtex(reactome)
+# pc = get_reduced_gtex_pca(reactome)
+pca_plot(path_names, reactome)

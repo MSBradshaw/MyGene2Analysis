@@ -12,3 +12,8 @@ __pycache__/
 HUMAN_9606_id_gene_name_mapping.txt
 .DS_Store/
 GTEx.pickle
+CommunityDetection/Expression-in-Pathways/all-genes-expression-pd.pickle
+CommunityDetection/Expression-in-Pathways/gtex-pandas-mygene2-genes-only.pickle
+CommunityDetection/Expression-in-Pathways/gtex-pandas-pca.pickle
+CommunityDetection/Expression-in-Pathways/gtex-reduced-pandas-pca.pickle
+CommunityDetection/Expression-in-Pathways/Pathway-Pickles/
