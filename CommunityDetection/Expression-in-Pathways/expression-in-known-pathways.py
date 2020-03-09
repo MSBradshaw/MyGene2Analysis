@@ -380,7 +380,6 @@ def pca_plot(pathways, reactome):
     # get the PC's of the raw_gtex data
     pca = get_principle_components(raw_gtex)
     pca.insert(3, 'pathway-name', 'No Info')
-    # TODO this part does not work..... from here to end of function
     # get the reactome info for each path way so they have meaningful names
     # create a mapping of the names
     pathway_names = {}
@@ -395,7 +394,6 @@ def pca_plot(pathways, reactome):
     data = pca[pca['pathway'] == pathways[0]]
     for i in range(1, len(pathways)):
         data = data.append(pca[pca['pathway'] == pathways[i]])
-
     # plot it!
     ax = sns.scatterplot(x=data.columns[4], y=data.columns[5], data=data, hue="pathway-name")
     plt.show()
@@ -403,11 +401,13 @@ def pca_plot(pathways, reactome):
     ax = sns.scatterplot(x=data.columns[4], y=data.columns[6], data=data, hue="pathway-name")
     plt.show()
 
-reactome = load_reactome()
-GTEX_GLOBAL = load_gtex()
-# plot_pathway_sizes(reactome)
-paths = get_pathways(reactome, 5, 2)
-path_names = list(paths.keys())
-# e = get_reduced_gtex(reactome)
-# pc = get_reduced_gtex_pca(reactome)
-pca_plot(path_names, reactome)
+
+if __name__ == "__main__":
+    reactome = load_reactome()
+    GTEX_GLOBAL = load_gtex()
+    # plot_pathway_sizes(reactome)
+    paths = get_pathways(reactome, 5, 2)
+    path_names = list(paths.keys())
+    # e = get_reduced_gtex(reactome)
+    # pc = get_reduced_gtex_pca(reactome)
+    pca_plot(path_names, reactome)
