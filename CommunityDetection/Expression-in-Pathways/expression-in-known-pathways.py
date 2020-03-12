@@ -91,6 +91,26 @@ def load_gtex():
 
 
 """
+Return a Pandas DataFrame of the Median Tissue Expression GTEx Data
+"""
+
+
+def load_median_gtex():
+    gtex_pickle_path = '../../GTEx/GTEx_median.pickle'
+    gtex = None
+    if path.exists(gtex_pickle_path):
+        print('loading GTEx')
+        gtex = pickle.load(open(gtex_pickle_path, 'rb'))
+    else:
+        print('Reading GTEx: This could take a while...')
+        gtex = pd.read_csv('../../GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct', sep='\t',
+                           skiprows=2)
+        # protocol 4 is to allow for large file handling (over 4gb)
+        pickle.dump(gtex, open(gtex_pickle_path, 'wb'), protocol=4)
+    return gtex
+
+
+"""
 Return a 2D list of pathways from reactome
 """
 
@@ -402,12 +422,70 @@ def pca_plot(pathways, reactome):
     plt.show()
 
 
+"""
+"""
+
+
+def pca_plot_median_gtex(pathways, reactome):
+    mg = load_median_gtex()
+    data = mg[mg['Description'].isin(list(nx.neighbors(reactome, pathways[0])))]
+    data.insert(2, 'pathway', pathways[0])
+    for i in range(1, len(pathways)):
+        p = pathways[i]
+        temp = mg[mg['Description'].isin(list(nx.neighbors(reactome, pathways[i])))]
+        temp.insert(2, 'pathway', pathways[i])
+        data = pd.concat([data, temp])
+
+    pca = get_principle_components(data)
+    pca.insert(3, 'pathway-name', 'No Info')
+    # get the reactome info for each path way so they have meaningful names
+    # create a mapping of the names
+    pathway_names = {}
+    for p in set(pca['pathway']):
+        pathway_names[p] = reactome.nodes[p]['Info']
+    # assign the meaning full names
+    print(pca.columns)
+    for i in range(pca.shape[0]):
+        print(pca.iloc[i, 1])
+        pca.iloc[i, 3] = pathway_names[pca.iloc[i, 1]]
+    # the data from pca that is path of the pathways of interest
+    data = pca[pca['pathway'] == pathways[0]]
+    for i in range(1, len(pathways)):
+        data = data.append(pca[pca['pathway'] == pathways[i]])
+    # plot it!
+    ax = sns.scatterplot(x=data.columns[4], y=data.columns[5], data=data, hue="pathway-name")
+    plt.show()
+    return data
+    # ax = sns.scatterplot(x=data.columns[4], y=data.columns[6], data=data, hue="pathway-name")
+    # plt.show()
+
+
+"""
+"""
+
+
+def head_map(pathways, reactome):
+    raw_gtex = None
+    for p in pathways:
+        if raw_gtex is None:
+            raw_gtex = pickle.load(open('Pathway-Pickles/' + p + '.pickle', 'rb'))
+        else:
+            raw_gtex = raw_gtex.append(pickle.load(open('Pathway-Pickles/' + p + '.pickle', 'rb')))
+    raw_gtex = remove_filler_rows(raw_gtex)
+    return raw_gtex
+
+
+rg = head_map(specific_paths, reactome)
 if __name__ == "__main__":
     reactome = load_reactome()
     GTEX_GLOBAL = load_gtex()
     # plot_pathway_sizes(reactome)
     paths = get_pathways(reactome, 5, 2)
     path_names = list(paths.keys())
+    # The citric acid cycle; Potassium Channels; Innate Immune System; Extension of Telomeres; Double
+    # Stranded Break Repair
+    specific_paths = ['R-HSA-1428517', 'R-HSA-1296071', 'R-HSA-168249', 'R-HSA-180786', 'R-HSA-5685942']
     # e = get_reduced_gtex(reactome)
     # pc = get_reduced_gtex_pca(reactome)
-    pca_plot(path_names, reactome)
+    pca_plot(specific_paths, reactome)
+    a = pca_plot_median_gtex(specific_paths, reactome)
