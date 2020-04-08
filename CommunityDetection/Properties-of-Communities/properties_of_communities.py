@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 """
 import os
-os.chdir('CommunityDetection/Strong-One-Mode-Filtering-Results')
+os.chdir('CommunityDetection/Properties-of-Communities')
 """
 
 """
@@ -235,6 +235,23 @@ def plot_communities_sizes_pre_and_post_filtering(communities_pre, communities_p
     ax1.set_xlabel('')
     ax1.figure.savefig("strong-one-mode-filter-HPO-violin.png")
     plt.clf()
+
+
+"""
+Writes the communities to a tab separated file
+One community per line, lines sorted by community size 
+"""
+
+
+def export_communites():
+    communities = get_communities()
+    communities.sort(key=len)
+    f = open("communities.txt", "w")
+    for com in communities:
+        for n in com:
+            f.write(n + '\t')
+        f.write('\n')
+    f.close()
 
 
 if __name__ == "__main__":

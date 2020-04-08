@@ -2,7 +2,7 @@ StringDB/*.txt
 .idea
 protein*
 CommunityDetection/.DS_Store
-.DS_Store/*
+.DS_Store
 venv/
 weighted-modularity-LPAwbPLUS/
 .Rhistory

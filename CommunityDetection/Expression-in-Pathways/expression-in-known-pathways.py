@@ -456,26 +456,56 @@ def pca_plot_median_gtex(pathways, reactome):
     ax = sns.scatterplot(x=data.columns[4], y=data.columns[5], data=data, hue="pathway-name")
     plt.show()
     return data
-    # ax = sns.scatterplot(x=data.columns[4], y=data.columns[6], data=data, hue="pathway-name")
-    # plt.show()
 
 
 """
+Given a list of gene names (all in a common pathway ideally)
+Make a stacked bar plot of these genes tissue specificity, x axis is tissue
+Return the df used to generate the plot
 """
 
 
-def head_map(pathways, reactome):
-    raw_gtex = None
-    for p in pathways:
-        if raw_gtex is None:
-            raw_gtex = pickle.load(open('Pathway-Pickles/' + p + '.pickle', 'rb'))
-        else:
-            raw_gtex = raw_gtex.append(pickle.load(open('Pathway-Pickles/' + p + '.pickle', 'rb')))
-    raw_gtex = remove_filler_rows(raw_gtex)
-    return raw_gtex
+def plot_pathway_tissue_specificity(pathway):
+    tsg = pd.read_csv('../../TissueSpecificGenes/tissue_specific_genes.csv')
+    # get the tissues related to each gene
+    tissues = []
+    gene_tissue_dict = {}
+    # get the tissues each gene is specific for
+    for gene in pathway:
+        gene_tissues = list(tsg[tsg['Description'] == gene]['tissue'])
+        for t in gene_tissues:
+            tissues.append(t)
+        gene_tissue_dict[gene] = gene_tissues
+    tissues = list(set(tissues))
+
+    # create an empty dictionary of tissues mapped to empty lists that will contain genes
+    tissues_to_gene_dict = {}
+    for t in tissues:
+        tissues_to_gene_dict[t] = []
+
+    # fill in the dictionary with 1s and 0s
+    # 1s if the gene is specific to the tissue, else 0
+    genes = []
+    for key in gene_tissue_dict.keys():
+        genes.append(key)
+        for t in tissues:
+            if t in gene_tissue_dict[key]:
+                tissues_to_gene_dict[t].append(1)
+            else:
+                tissues_to_gene_dict[t].append(0)
+
+    # create a DataFrame of the dictionary
+    df = pd.DataFrame(tissues_to_gene_dict)
+    df['gene'] = genes
+
+    # make stacked bar plot
+    sns.set()
+    ax = df.set_index('gene').T.plot(kind='bar', stacked=True)
+    ax.legend_.remove()
+
+    return df
 
 
-rg = head_map(specific_paths, reactome)
 if __name__ == "__main__":
     reactome = load_reactome()
     GTEX_GLOBAL = load_gtex()
@@ -485,6 +515,10 @@ if __name__ == "__main__":
     # The citric acid cycle; Potassium Channels; Innate Immune System; Extension of Telomeres; Double
     # Stranded Break Repair
     specific_paths = ['R-HSA-1428517', 'R-HSA-1296071', 'R-HSA-168249', 'R-HSA-180786', 'R-HSA-5685942']
+
+    # make a stacked bar plot of one pathway
+    plot_pathway_tissue_specificity(paths['R-HSA-8852276'])
+
     # e = get_reduced_gtex(reactome)
     # pc = get_reduced_gtex_pca(reactome)
     pca_plot(specific_paths, reactome)
