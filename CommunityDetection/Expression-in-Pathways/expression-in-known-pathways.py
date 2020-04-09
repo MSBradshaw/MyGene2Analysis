@@ -14,6 +14,8 @@ from Becketts_Community_Analysis_Results.becketts_community_analysis import get_
     load_string_db_network, load_jenkins_gene_to_pheno
 from sklearn.decomposition import PCA
 
+sns.set(style="whitegrid")
+
 # just temporarily
 GTEX_GLOBAL = None
 
@@ -111,7 +113,9 @@ def load_median_gtex():
 
 
 """
+Given the reactome networkx object
 Return a 2D list of pathways from reactome
+If number_of_pathways is -1: return all pathways, else return a the specified number of random pathways
 """
 
 
@@ -465,7 +469,7 @@ Return the df used to generate the plot
 """
 
 
-def plot_pathway_tissue_specificity(pathway):
+def plot_pathway_tissue_specificity(pathway, plot=True):
     tsg = pd.read_csv('../../TissueSpecificGenes/tissue_specific_genes.csv')
     # get the tissues related to each gene
     tissues = []
@@ -499,27 +503,124 @@ def plot_pathway_tissue_specificity(pathway):
     df['gene'] = genes
 
     # make stacked bar plot
-    sns.set()
-    ax = df.set_index('gene').T.plot(kind='bar', stacked=True)
-    ax.legend_.remove()
+    if plot:
+        sns.set()
+        ax = df.set_index('gene').T.plot(kind='bar', stacked=True)
+        ax.legend_.remove()
 
     return df
+
+
+"""
+Give a dictionary of pathways mapped to lists of genes
+Return a DataFrame of pathway level gene specificity summary stats
+"""
+
+
+def summarize_path_ways(pathways,reactome):
+    summary_stats = {
+        'pathway':[],
+        'pathway_info': [],
+        'gene_count':[],
+        'tissue_count': [],
+        'mean_gene_per_tissue': [],
+        'max_genes_in_one_tissue': [],
+        'non_specific_gene_count': []
+    }
+    tidy_stats = {
+        'pathway': [],
+        'pathway_info': [],
+        'count':[],
+        'count_meta': []
+    }
+    for p in pathways.keys():
+        info = reactome.nodes[p]['Info']
+        df = plot_pathway_tissue_specificity(pathways[p], False)
+        # count the number of non specific genes
+        non_specific_count = sum([1 if sum(df.iloc[i, :-1]) == 0 else 0 for i in range(df.shape[0])])
+        # find the maximum number of
+        max_genes_in_one_tissue = 0
+        for i in range(df.shape[1]-1):
+            col_sum = sum(df.iloc[:,i])
+            if col_sum > max_genes_in_one_tissue:
+                max_genes_in_one_tissue = col_sum
+
+        # make list of the data to be loaded into the tidy dictionary
+        values = [df.shape[0],df.shape[1],df.shape[0] / df.shape[1],max_genes_in_one_tissue,non_specific_count]
+        labels = ['gene_count', 'tissue_count', 'mean_genes_per_tissue', 'max_genes_in_one_tissue',
+               'non_specific_gene_count']
+
+        for i in range(len(values)):
+            tidy_stats['pathway'].append(p)
+            tidy_stats['pathway_info'].append(info)
+            tidy_stats['count'].append(values[i])
+            tidy_stats['count_meta'].append(labels[i])
+
+        # add info to the non-tidy dict
+        summary_stats['pathway'].append(p)
+        summary_stats['pathway_info'].append(info)
+        summary_stats['gene_count'].append(df.shape[0])
+        summary_stats['tissue_count'].append(df.shape[1])
+        summary_stats['mean_gene_per_tissue'].append(df.shape[0] / df.shape[1])
+        summary_stats['max_genes_in_one_tissue'].append(max_genes_in_one_tissue)
+        summary_stats['non_specific_gene_count'].append(non_specific_count)
+
+    tidy_df = pd.DataFrame(tidy_stats)
+    summary_df = pd.DataFrame(summary_stats)
+
+    ax = sns.barplot(x="pathway", y="count", hue="count_meta", data=tidy_df)
+    plt.clf()
+
+    return summary_df
+
+
+"""
+Given a DataFrame formatted like the out put of summarize_path_ways() and a base file name
+Create and save plots visualizing the various pathways stats
+"""
+
+
+def plot_pathways_summary_stats(df, base_filename):
+    ax = sns.scatterplot(x="gene_count", y="tissue_count", hue="pathway", data=df)
+    ax.legend_.remove()
+    plt.savefig('Pathway-Figures/' + base_filename + '_gene_tissue_scatter.png')
+    plt.clf()
+
+    ax = sns.scatterplot(x="gene_count", y="non_specific_gene_count", hue="pathway", data=df)
+    ax.legend_.remove()
+    plt.savefig('Pathway-Figures/' + base_filename + '_gene_non-specific_scatter.png')
+    plt.clf()
+
+    ax = sns.scatterplot(x="tissue_count", y="mean_gene_per_tissue", hue="pathway", data=df)
+    ax.legend_.remove()
+    plt.savefig('Pathway-Figures/' + base_filename + '_mean-gene_tissue-count_scatter.png')
+    plt.clf()
+
+    ax = sns.scatterplot(x="tissue_count", y="max_genes_in_one_tissue", hue="pathway", data=df)
+    ax.legend_.remove()
+    plt.savefig('Pathway-Figures/' + base_filename + '_max-genes_tissue-count_scatter.png')
+    plt.clf()
 
 
 if __name__ == "__main__":
     reactome = load_reactome()
     GTEX_GLOBAL = load_gtex()
     # plot_pathway_sizes(reactome)
-    paths = get_pathways(reactome, 5, 2)
-    path_names = list(paths.keys())
-    # The citric acid cycle; Potassium Channels; Innate Immune System; Extension of Telomeres; Double
-    # Stranded Break Repair
-    specific_paths = ['R-HSA-1428517', 'R-HSA-1296071', 'R-HSA-168249', 'R-HSA-180786', 'R-HSA-5685942']
+    paths = get_pathways(reactome, -1, 2)
 
-    # make a stacked bar plot of one pathway
-    plot_pathway_tissue_specificity(paths['R-HSA-8852276'])
+    path_summary_stats = summarize_path_ways(paths, reactome)
+    plot_pathways_summary_stats(path_summary_stats, 'all-paths')
 
-    # e = get_reduced_gtex(reactome)
-    # pc = get_reduced_gtex_pca(reactome)
-    pca_plot(specific_paths, reactome)
-    a = pca_plot_median_gtex(specific_paths, reactome)
+    # path_names = list(paths.keys())
+    #
+    # # The citric acid cycle; Potassium Channels; Innate Immune System; Extension of Telomeres; Double
+    # # Stranded Break Repair
+    # specific_paths = ['R-HSA-1428517', 'R-HSA-1296071', 'R-HSA-168249', 'R-HSA-180786', 'R-HSA-5685942']
+    #
+    # # make a stacked bar plot of one pathway
+    # plot_pathway_tissue_specificity(paths['R-HSA-8852276'])
+    #
+    # # e = get_reduced_gtex(reactome)
+    # # pc = get_reduced_gtex_pca(reactome)
+    # pca_plot(specific_paths, reactome)
+    # a = pca_plot_median_gtex(specific_paths, reactome)
