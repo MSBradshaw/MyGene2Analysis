@@ -601,6 +601,11 @@ def plot_pathways_summary_stats(df, base_filename):
     plt.savefig('Pathway-Figures/' + base_filename + '_max-genes_tissue-count_scatter.png')
     plt.clf()
 
+    ax = sns.scatterplot(x="tissue_count", y="non_specific_gene_count", hue="pathway", data=df)
+    ax.legend_.remove()
+    plt.savefig('Pathway-Figures/' + base_filename + '_non-specific_tissue-count_scatter.png')
+    plt.clf()
+
 
 if __name__ == "__main__":
     reactome = load_reactome()
