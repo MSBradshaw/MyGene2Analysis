@@ -1,9 +1,9 @@
 library(readr)
-source("LPA_wb_plus.R")  #read in functions
+source("CommunityDetection/Beckett-Community-Creation/LPA_wb_plus.R")  #read in functions
 args = commandArgs(trailingOnly=TRUE)
 print(args)
 # read in the co-occurance matrix
-co <- read.csv('../co_occurrence_matrix.csv')
+co <- read.csv('co_occurrence_matrix.csv')
 # extract gene names
 genes <- co$X
 genes <- as.character(genes)
@@ -18,7 +18,7 @@ com <- as.matrix(co)
 MOD1 = LPA_wb_plus(com) #each iteration of this is random
 
 # write results to a file
-filename = paste("outfile",args[1],".txt",sep='')
+filename = paste("CommunityDetection/Becketts-raw/outfile",args[1],".txt",sep='')
 cat(as.character(MOD1$modularity),append=TRUE,file=filename)
 cat("\n",append=TRUE,file=filename)
 

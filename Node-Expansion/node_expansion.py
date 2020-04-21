@@ -1,4 +1,4 @@
-from Becketts_Community_Analysis_Results.becketts_community_analysis import get_communities, load_graphs, \
+from Becketts_Community_Analysis_Results.becketts_community_analysis import get_beckett_communities, load_graphs, \
     load_string_db_network, load_jenkins_gene_to_pheno
 import networkx as nx
 import numpy as np
@@ -106,27 +106,27 @@ if __name__ == "__main__":
     # box plot
     ax1 = sns.boxplot(x="Group", y="HPOs per Gene", data=data)
     ax1.set_xlabel('')
-    ax1.figure.savefig("hpos-per-gene-boxplot.png")
+    ax1.figure.savefig("Node-Expansion/hpos-per-gene-boxplot.png")
     plt.clf()
 
     # box plot with log scale
     ax1 = sns.boxplot(x="Group", y="HPOs per Gene", data=data)
     ax1.set_xlabel('')
     ax1.set_yscale("log")
-    ax1.figure.savefig("log-hpos-per-gene-boxplot.png")
+    ax1.figure.savefig("Node-Expansion/log-hpos-per-gene-boxplot.png")
     plt.clf()
 
     # histogram
-    ax1 = sns.boxplot(x="Group", y="HPOs per Gene", data=data)
+    ax1 = sns.barplot(x="Group", y="HPOs per Gene", data=data)
     ax1.set_xlabel('')
-    ax1.figure.savefig("hpos-per-gene-boxplot.png")
+    ax1.figure.savefig("Node-Expansion/hpos-per-gene-histogram.png")
     plt.clf()
 
     # histogram log scale
     ax1 = sns.barplot(x="Group", y="HPOs per Gene", data=data)
     ax1.set_xlabel('')
     ax1.set_yscale("log")
-    ax1.figure.savefig("log-hpos-per-gene-histogram.png")
+    ax1.figure.savefig("Node-Expansion/log-hpos-per-gene-histogram.png")
     plt.clf()
 
     # plot the stats about the expansion
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     ax1.set_xlabel('')
     ax1.set_ylabel('Genes Not Found In StringDB')
     # ax1.set_yscale("log")
-    ax1.figure.savefig("genes-not-found-in-StringDB-histogram.png")
+    ax1.figure.savefig("Node-Expansion/genes-not-found-in-StringDB-histogram.png")
     plt.clf()
 
     # plot the stats about the expansion and number of neighbors not found in MyGene2 and Jenkins
@@ -153,5 +153,5 @@ if __name__ == "__main__":
     ax1.set_xlabel('')
     ax1.set_ylabel('StringDB Neighbors Not Found')
     ax1.figure.subplots_adjust(left=0.2)
-    ax1.figure.savefig("neighbors-not-found-histogram.png")
+    ax1.figure.savefig("Node-Expansion/neighbors-not-found-histogram.png")
     plt.clf()

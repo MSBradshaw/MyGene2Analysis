@@ -7,7 +7,7 @@ import obonet
 from networkx.drawing.nx_agraph import write_dot, graphviz_layout
 
 # read in the tabular data
-data = pd.read_csv('Data/my_gene_2_variantes_by_family_tables.csv')
+data = pd.read_csv('../Data/my_gene_2_variantes_by_family_tables.csv')
 
 # get the number of genes and number of hpos
 genes = list(set(data.iloc[:, 1]))
@@ -86,7 +86,7 @@ w.display.charge = 10
 w.display.linkLength = 5
 w.display.gravity = 0.5
 w.show()
-
+quit()
 # webweb plot of all communities except the first way to large hair ball community
 node_list = []
 for i in range(1,len(c)):

@@ -9,12 +9,10 @@ import copy
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-
 """
 import os
 os.chdir('CommunityDetection')
 """
-
 
 """
 Checks output files from the R script that ran Beckett's LPA community detection for weighted bipartite networks.
@@ -22,40 +20,46 @@ Finds the best permutation and returns communities as a 2D list.
 """
 
 
-def get_communities():
-    base_name = '../Becketts-raw/outfile'
-    best_q = 0.00
-    best_file = None
+def get_beckett_communities():
+    becketts_pickle_path = 'CachedFiles/beckett_communities.pickle'
+    if path.exists(becketts_pickle_path):
+        print('Loading Beckett Communities')
+        return pickle.load(open(becketts_pickle_path, 'rb'))
+    else:
+        print('Generating Beckett Communities')
+        base_name = 'CommunityDetection/Becketts-raw/outfile'
+        best_q = 0.00
+        best_file = None
 
-    # find the permutation with the best modularity score
-    for i in range(1, 100):
-        for j in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']:
-            file = base_name + str(i) + j + '.txt'
-            with open(file) as f:
-                first_line = f.readline()
-                if float(first_line.strip()) > best_q:
-                    best_q = float(first_line.strip())
-                    best_file = file
+        # find the permutation with the best modularity score
+        for i in range(1, 100):
+            for j in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']:
+                file = base_name + str(i) + j + '.txt'
+                with open(file) as f:
+                    first_line = f.readline()
+                    if float(first_line.strip()) > best_q:
+                        best_q = float(first_line.strip())
+                        best_file = file
 
-    # read in the communities associated with that best modularity score.
-    # read it in as a 2D list
-    first = True
-    coms = []
-    file = open(best_file, "r")
-    for line in file:
-        if first:
-            first = False
-        else:
-            coms.append(line.strip().split(','))
-    file.close()
+        # read in the communities associated with that best modularity score.
+        # read it in as a 2D list
+        first = True
+        coms = []
+        file = open(best_file, "r")
+        for line in file:
+            if first:
+                first = False
+            else:
+                coms.append(line.strip().split(','))
+        file.close()
 
-    # fix a formatting error introduced from R
-    for i in range(len(coms)):
-        for j in range(len(coms[i])):
-            if coms[i][j][0:3] == 'HP.':
-                coms[i][j] = coms[i][j].replace('.', ':')
-
-    return coms
+        # fix a formatting error introduced from R
+        for i in range(len(coms)):
+            for j in range(len(coms[i])):
+                if coms[i][j][0:3] == 'HP.':
+                    coms[i][j] = coms[i][j].replace('.', ':')
+        pickle.dump(coms, open(becketts_pickle_path, 'wb'))
+        return coms
 
 
 """
@@ -65,16 +69,18 @@ Either creates the graph from the raw tabular data or reads in a pre-made pickle
 
 
 def load_graphs():
+    mygene2_named_path = "CachedFiles/MyGene2NetworkxGraph.pickle"
+    mygene2_not_named_path = "CachedFiles/MyGene2NetworkxGraph-no-names.pickle"
     # load the MyGene2 data as a network
     g = None
-    if path.exists("../../MyGene2NetworkxGraph.pickle") and path.exists("../../MyGene2NetworkxGraph-no-names.pickle"):
+    if path.exists(mygene2_named_path) and path.exists(mygene2_not_named_path):
         print('Loading Pre-made MyGene2NetworkxGraph.pickle')
-        g = pickle.load(open("../../MyGene2NetworkxGraph.pickle", "rb"))
-        gn = pickle.load(open("../../MyGene2NetworkxGraph-no-names.pickle", "rb"))
+        g = pickle.load(open(mygene2_named_path, "rb"))
+        gn = pickle.load(open(mygene2_not_named_path, "rb"))
     else:
-        print('Creating MyGene2NetworkxGraph.pickle from stratch')
+        print('Creating ' + mygene2_not_named_path + ' from stratch')
         # read in the tabular data
-        data = pd.read_csv('../../Data/my_gene_2_variantes_by_family_tables.csv')
+        data = pd.read_csv('Data/my_gene_2_variantes_by_family_tables.csv')
 
         # get the number of genes and number of hpos
         genes = list(set(data.iloc[:, 1]))
@@ -121,9 +127,9 @@ def load_graphs():
             g.nodes[i]['Name'] = name
             g.nodes[i]['Type'] = node_type
         gn = g.copy()
-        pickle.dump(gn, open("../../MyGene2NetworkxGraph-no-names.pickle", "wb"))
+        pickle.dump(gn, open(mygene2_not_named_path, "wb"))
         g = nx.relabel_nodes(g, name_mapping)
-        pickle.dump(g, open("../../MyGene2NetworkxGraph.pickle", "wb"))
+        pickle.dump(g, open(mygene2_named_path, "wb"))
     return g, gn
 
 
@@ -170,14 +176,15 @@ names of the HPO terms as metadata.
 
 def load_jenkins_gene_to_pheno():
     G = nx.DiGraph()
-    if path.exists("../gene_to_hpo_with_common_names_network.pickle"):
+    co_occurance_pickle_path = "CachedFiles/gene_to_hpo_with_common_names_network.pickle"
+    if path.exists(co_occurance_pickle_path):
         print('Loading Pre-made co-occurrence matrix')
-        G = pickle.load(open("../gene_to_hpo_with_common_names_network.pickle", "rb"))
+        G = pickle.load(open(co_occurance_pickle_path, "rb"))
     else:
         # the source file was downloaded January 27th 2020 from
         # http://compbio.charite.de/jenkins/job/hpo.annotations.monthly/lastSuccessfulBuild/artifact/annotation/ALL_SOURCES_ALL_FREQUENCIES_genes_to_phenotype.txt\
         # Artifacts of hpo.annotations.monthly  # 159
-        data = pd.read_csv('../../ALL_SOURCES_ALL_FREQUENCIES_genes_to_phenotype.txt', sep='\t', skiprows=1)
+        data = pd.read_csv('Jenkins/ALL_SOURCES_ALL_FREQUENCIES_genes_to_phenotype.txt', sep='\t', skiprows=1)
         print('Generating gene_to_hpo_with_common_names_network.pickle from scratch')
         for i in range(data.shape[0]):
             # create the end
@@ -188,7 +195,7 @@ def load_jenkins_gene_to_pheno():
         for i in range(data.shape[0]):
             G.nodes[data.iloc[i, 3]]['common_name'] = data.iloc[i, 2]
 
-        pickle.dump(G, open('../gene_to_hpo_with_common_names_network.pickle', 'wb'))
+        pickle.dump(G, open(co_occurance_pickle_path, 'wb'))
     return G
 
 
@@ -213,15 +220,16 @@ Return the network as a networkx object
 
 def load_string_db_network():
     G = None
-    if path.exists('../../StringDB/protein_interactions_named.pickle'):
-        print('Loading ../../StringDB/protein_interactions_named.pickle')
-        G = pickle.load(open('../../StringDB/protein_interactions_named.pickle', 'rb'))
+    string_db_pickle_path = 'StringDB/protein_interactions_named.pickle'
+    if path.exists(string_db_pickle_path):
+        print('Loading ' + string_db_pickle_path)
+        G = pickle.load(open(string_db_pickle_path, 'rb'))
     else:
-        print('Generating ../../StringDB/protein_interactions_named.pickle\nThis may take a few minutes...')
+        print('Generating ' + string_db_pickle_path + '\nThis may take a few minutes...')
         # create a black graph to fill
         G = nx.Graph()
         # read in the files line by line
-        file = open('../../StringDB/9606.protein.actions.v11.0.txt', 'r')
+        file = open('StringDB/9606.protein.actions.v11.0.txt', 'r')
         first = True
         for line in file:
             if first:
@@ -231,7 +239,7 @@ def load_string_db_network():
             G.add_edge(row[0], row[1])
         print('Num of nodes ' + str(len(G.nodes)))
         # load the file that contains the protein names
-        pro_info = pd.read_csv('../../StringDB/protein.info.v11.0.txt', sep='\t')
+        pro_info = pd.read_csv('StringDB/protein.info.v11.0.txt', sep='\t')
         pro_info.index = pro_info.loc[:, 'protein_external_id']
         print('Number of rows: ' + str(pro_info.shape))
         print('Size of unique IDs: ' + str(len(set(pro_info.loc[:, 'protein_external_id']))))
@@ -240,7 +248,7 @@ def load_string_db_network():
         for n in list(G.nodes):
             name_mapping[n] = pro_info.loc[n, 'preferred_name']
         G = nx.relabel_nodes(G, name_mapping)
-        pickle.dump(G, open('../../StringDB/protein_interactions_named.pickle', 'wb'))
+        pickle.dump(G, open(string_db_pickle_path, 'wb'))
     return G
 
 
@@ -366,11 +374,10 @@ if __name__ == "__main__":
     plt.margins(x=0.1)
     print('Running Community Detection Analysis from Beckett\'s LPAwb+ algorithm')
     # get the best best set of beckett communities
-    communities = get_communities()
+    communities = get_beckett_communities()
     # load the networkx objects a named one
     G, Gn = load_graphs()
-    # plot the hair ball
-    # webweb_plot(Gn, communities)
+
     # read in the known gene to phenotype connections
     Gj = load_jenkins_gene_to_pheno()
     # make a list of all candidate genes
@@ -388,7 +395,7 @@ if __name__ == "__main__":
     for i in communities:
         len([x for x in i if x[0:3] != 'HP:'])
         og_com_sizes.append(len([x for x in i if x[0:3] != 'HP:']))
-        #og_com_sizes.append(len(i))
+        # og_com_sizes.append(len(i))
     # get the number of genes in each community
     for i in com_gene_hpo:
         filter_1_com_sizes.append(len(com_gene_hpo[i]))
@@ -402,9 +409,10 @@ if __name__ == "__main__":
     filter_1_name = 'Direct Filtering\n N=' + str(len(filter_1_com_sizes))
     filter_2_name = 'Neighbor Filtering\n N=' + str(len(filter_2_com_sizes))
     com_lengths = og_com_sizes + filter_1_com_sizes + filter_2_com_sizes
-    filter_names = [og_name] * len(og_com_sizes) + [filter_1_name] * len(filter_1_com_sizes) + [filter_2_name] * len(filter_2_com_sizes)
+    filter_names = [og_name] * len(og_com_sizes) + [filter_1_name] * len(filter_1_com_sizes) + [filter_2_name] * len(
+        filter_2_com_sizes)
     data = pd.DataFrame({'Genes in each Communities': com_lengths,
-                         'Filtering':filter_names })
+                         'Filtering': filter_names})
 
     """
     The results seen in this figure suggest that filtering out genes based on known neighbor interactions with their 
@@ -414,7 +422,6 @@ if __name__ == "__main__":
     ax1.set_xlabel('')
     ax1.figure.savefig("filtering-communities-number-of-genes-boxplot.png")
     plt.clf()
-
 
     # plot the number of unique HPOs in each community after filtering
 
@@ -433,7 +440,6 @@ if __name__ == "__main__":
             hpos = hpos + com_gene_hpo[i][h]
         filter_1_com_sizes_g.append(len(set(hpos)))
 
-
     # get the number of unique HPOs in each community
     for i in com_gene_hpo_stringdb_filtered:
         hpos = []
@@ -441,15 +447,15 @@ if __name__ == "__main__":
             hpos = hpos + com_gene_hpo_stringdb_filtered[i][h]
         filter_2_com_sizes_g.append(len(set(hpos)))
 
-
     # Boxplot of the number of unique hpos in each community
     og_name = 'Unfiltered\n N=' + str(len(og_com_sizes_g))
     filter_1_name = 'Direct Filtering\n N=' + str(len(filter_1_com_sizes_g))
     filter_2_name = 'Neighbor Filtering\n N=' + str(len(filter_2_com_sizes_g))
     com_lengths = og_com_sizes_g + filter_1_com_sizes_g + filter_2_com_sizes_g
-    filter_names = [og_name] * len(og_com_sizes_g) + [filter_1_name] * len(filter_1_com_sizes_g) + [filter_2_name] * len(filter_2_com_sizes_g)
+    filter_names = [og_name] * len(og_com_sizes_g) + [filter_1_name] * len(filter_1_com_sizes_g) + [
+        filter_2_name] * len(filter_2_com_sizes_g)
     data = pd.DataFrame({'Unique HPOs in each Communities': com_lengths,
-                         'Filtering':filter_names })
+                         'Filtering': filter_names})
 
     """
     The results seen in this figure suggest that filtering out genes based on known neighbor interactions with their 
@@ -460,8 +466,8 @@ if __name__ == "__main__":
     ax1.figure.savefig("filtering-communities-number-of-hpos-blox.png")
     plt.clf()
 
-    ax1 = sns.violinplot(x="Filtering", y="Unique HPOs in each Communities", data=data,split=True,
-                        scale="count", inner="stick")
+    ax1 = sns.violinplot(x="Filtering", y="Unique HPOs in each Communities", data=data, split=True,
+                         scale="count", inner="stick")
     ax1.set_xlabel('')
     ax1.figure.savefig("filtering-communities-number-of-hpos-violin.png")
     plt.clf()
@@ -471,6 +477,7 @@ if __name__ == "__main__":
     og_com_sizes_g = []
     filter_1_com_sizes_g = []
     filter_2_com_sizes_g = []
+
     # get the number of unique HPOs in each gene, because all genes have the same HPO at this points, I just add the legnth
     # of HPOs in the community the number of times there are genes
     for i in communities:
@@ -489,15 +496,15 @@ if __name__ == "__main__":
             hpos = com_gene_hpo_stringdb_filtered[i][h]
             filter_2_com_sizes_g.append(len(set(hpos)))
 
-
     # Boxplot of the number of unique hpos in each community
     og_name = 'Unfiltered\n N=' + str(len(og_com_sizes_g))
     filter_1_name = 'Direct Filtering\n N=' + str(len(filter_1_com_sizes_g))
     filter_2_name = 'Neighbor Filtering\n N=' + str(len(filter_2_com_sizes_g))
     com_lengths = og_com_sizes_g + filter_1_com_sizes_g + filter_2_com_sizes_g
-    filter_names = [og_name] * len(og_com_sizes_g) + [filter_1_name] * len(filter_1_com_sizes_g) + [filter_2_name] * len(filter_2_com_sizes_g)
+    filter_names = [og_name] * len(og_com_sizes_g) + [filter_1_name] * len(filter_1_com_sizes_g) + [
+        filter_2_name] * len(filter_2_com_sizes_g)
     data = pd.DataFrame({'HPOs Associated With Each Gene': com_lengths,
-                         'Filtering':filter_names })
+                         'Filtering': filter_names})
 
     """
     The results seen in this figure suggest that filtering out genes based on known neighbor interactions with their 
@@ -508,8 +515,8 @@ if __name__ == "__main__":
     ax1.figure.savefig("filtering-communities-hpos-per-gene-boxplot.png")
     plt.clf()
 
-    ax1 = sns.violinplot(x="Filtering", y="HPOs Associated With Each Gene", data=data,split=True,
-                        scale="count", inner="stick")
+    ax1 = sns.violinplot(x="Filtering", y="HPOs Associated With Each Gene", data=data, split=True,
+                         scale="count", inner="stick")
     ax1.set_xlabel('')
     ax1.figure.savefig("filtering-communities-hpos-per-gene-violin.png")
     plt.clf()

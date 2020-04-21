@@ -517,59 +517,78 @@ Return a DataFrame of pathway level gene specificity summary stats
 """
 
 
-def summarize_path_ways(pathways,reactome):
-    summary_stats = {
-        'pathway':[],
-        'pathway_info': [],
-        'gene_count':[],
-        'tissue_count': [],
-        'mean_gene_per_tissue': [],
-        'max_genes_in_one_tissue': [],
-        'non_specific_gene_count': []
-    }
-    tidy_stats = {
-        'pathway': [],
-        'pathway_info': [],
-        'count':[],
-        'count_meta': []
-    }
-    for p in pathways.keys():
-        info = reactome.nodes[p]['Info']
-        df = plot_pathway_tissue_specificity(pathways[p], False)
-        # count the number of non specific genes
-        non_specific_count = sum([1 if sum(df.iloc[i, :-1]) == 0 else 0 for i in range(df.shape[0])])
-        # find the maximum number of
-        max_genes_in_one_tissue = 0
-        for i in range(df.shape[1]-1):
-            col_sum = sum(df.iloc[:,i])
-            if col_sum > max_genes_in_one_tissue:
-                max_genes_in_one_tissue = col_sum
+def summarize_path_ways(pathways, reactome, should_plot=False,is_predicted=False):
+    print(len(pathways))
+    summary_cache_path = 'summary-path-count-' + str(len(pathways)) + '.pickle'
+    tidy_cache_path = 'tidy-path-count-' + str(len(pathways)) + '.pickle'
+    # check if the cache files exist and if we are working with all pathways (there are 2292 total)
+    if path.exists(summary_cache_path) and path.exists(tidy_cache_path) and len(pathways) == 2292:
+        print('Loading cached summary stats')
+        summary_df = pickle.load(open(summary_cache_path, 'rb'))
+        tidy_df = pickle.load(open(tidy_cache_path, 'rb'))
+    else:
+        print('Generating Summary Stats')
+        summary_stats = {
+            'pathway': [],
+            'pathway_info': [],
+            'gene_count': [],
+            'tissue_count': [],
+            'mean_gene_per_tissue': [],
+            'max_genes_in_one_tissue': [],
+            'non_specific_gene_count': []
+        }
+        tidy_stats = {
+            'pathway': [],
+            'pathway_info': [],
+            'count': [],
+            'count_meta': []
+        }
+        for p in pathways.keys():
+            info = ''
+            if is_predicted:
+                info = 'Predicted'
+            else:
+                info = reactome.nodes[p]['Info']
+            df = plot_pathway_tissue_specificity(pathways[p], False)
+            # count the number of non specific genes
+            non_specific_count = sum([1 if sum(df.iloc[i, :-1]) == 0 else 0 for i in range(df.shape[0])])
+            # find the maximum number of
+            max_genes_in_one_tissue = 0
+            for i in range(df.shape[1] - 1):
+                col_sum = sum(df.iloc[:, i])
+                if col_sum > max_genes_in_one_tissue:
+                    max_genes_in_one_tissue = col_sum
 
-        # make list of the data to be loaded into the tidy dictionary
-        values = [df.shape[0],df.shape[1],df.shape[0] / df.shape[1],max_genes_in_one_tissue,non_specific_count]
-        labels = ['gene_count', 'tissue_count', 'mean_genes_per_tissue', 'max_genes_in_one_tissue',
-               'non_specific_gene_count']
+            # make list of the data to be loaded into the tidy dictionary
+            values = [df.shape[0], df.shape[1], df.shape[0] / df.shape[1], max_genes_in_one_tissue, non_specific_count]
+            labels = ['gene_count', 'tissue_count', 'mean_genes_per_tissue', 'max_genes_in_one_tissue',
+                      'non_specific_gene_count']
 
-        for i in range(len(values)):
-            tidy_stats['pathway'].append(p)
-            tidy_stats['pathway_info'].append(info)
-            tidy_stats['count'].append(values[i])
-            tidy_stats['count_meta'].append(labels[i])
+            for i in range(len(values)):
+                tidy_stats['pathway'].append(p)
+                tidy_stats['pathway_info'].append(info)
+                tidy_stats['count'].append(values[i])
+                tidy_stats['count_meta'].append(labels[i])
 
-        # add info to the non-tidy dict
-        summary_stats['pathway'].append(p)
-        summary_stats['pathway_info'].append(info)
-        summary_stats['gene_count'].append(df.shape[0])
-        summary_stats['tissue_count'].append(df.shape[1])
-        summary_stats['mean_gene_per_tissue'].append(df.shape[0] / df.shape[1])
-        summary_stats['max_genes_in_one_tissue'].append(max_genes_in_one_tissue)
-        summary_stats['non_specific_gene_count'].append(non_specific_count)
+            # add info to the non-tidy dict
+            summary_stats['pathway'].append(p)
+            summary_stats['pathway_info'].append(info)
+            summary_stats['gene_count'].append(df.shape[0])
+            summary_stats['tissue_count'].append(df.shape[1])
+            summary_stats['mean_gene_per_tissue'].append(df.shape[0] / df.shape[1])
+            summary_stats['max_genes_in_one_tissue'].append(max_genes_in_one_tissue)
+            summary_stats['non_specific_gene_count'].append(non_specific_count)
 
-    tidy_df = pd.DataFrame(tidy_stats)
-    summary_df = pd.DataFrame(summary_stats)
+        tidy_df = pd.DataFrame(tidy_stats)
+        summary_df = pd.DataFrame(summary_stats)
+        if len(pathways) == 2292:
+            pickle.dump(summary_df, open(summary_cache_path, 'wb'))
+            pickle.dump(tidy_df, open(tidy_cache_path, 'wb'))
 
-    ax = sns.barplot(x="pathway", y="count", hue="count_meta", data=tidy_df)
-    plt.clf()
+    if should_plot:
+        print('Generating Bar Plot')
+        ax = sns.barplot(x="pathway", y="count", hue="count_meta", data=tidy_df)
+        plt.clf()
 
     return summary_df
 
@@ -607,14 +626,48 @@ def plot_pathways_summary_stats(df, base_filename):
     plt.clf()
 
 
-if __name__ == "__main__":
-    reactome = load_reactome()
-    GTEX_GLOBAL = load_gtex()
-    # plot_pathway_sizes(reactome)
-    paths = get_pathways(reactome, -1, 2)
+def plot_real_and_predicted_path_ways(df, base_filename):
+    ax = sns.scatterplot(x="gene_count", y="tissue_count", hue="type", data=df)
+    plt.savefig('Pathway-Figures/' + base_filename + '_gene_non-specific_scatter.png')
+    plt.clf()
 
-    path_summary_stats = summarize_path_ways(paths, reactome)
-    plot_pathways_summary_stats(path_summary_stats, 'all-paths')
+    ax = sns.scatterplot(x="gene_count", y="non_specific_gene_count", hue="type", data=df)
+    plt.savefig('Pathway-Figures/' + base_filename + '_gene_non-specific_scatter.png')
+    plt.clf()
+
+    ax = sns.scatterplot(x="tissue_count", y="mean_gene_per_tissue", hue="type", data=df)
+    plt.savefig('Pathway-Figures/' + base_filename + '_mean-gene_tissue-count_scatter.png')
+    plt.clf()
+
+    ax = sns.scatterplot(x="tissue_count", y="max_genes_in_one_tissue", hue="type", data=df)
+    plt.savefig('Pathway-Figures/' + base_filename + '_max-genes_tissue-count_scatter.png')
+    plt.clf()
+
+    ax = sns.scatterplot(x="tissue_count", y="non_specific_gene_count", hue="type", data=df)
+    plt.savefig('Pathway-Figures/' + base_filename + '_non-specific_tissue-count_scatter.png')
+    plt.clf()
+
+    ax = sns.boxplot(y="tissue_count", x="type", data=df)
+    plt.savefig('Pathway-Figures/' + base_filename + '_tissue-boxplot.png')
+    plt.clf()
+
+    ax = sns.boxplot(y="gene_count", x="type", data=df)
+    plt.savefig('Pathway-Figures/' + base_filename + '_gene_count-boxplot.png')
+    plt.clf()
+
+    ax = sns.boxplot(y="non_specific_gene_count", x="type", data=df)
+    plt.savefig('Pathway-Figures/' + base_filename + '_non_specific_gene_count-boxplot.png')
+    plt.clf()
+
+
+# if __name__ == "__main__":
+#     reactome = load_reactome()
+#     GTEX_GLOBAL = load_gtex()
+#     # plot_pathway_sizes(reactome)
+#     paths = get_pathways(reactome, -1, 2)
+#
+#     path_summary_stats = summarize_path_ways(paths, reactome)
+#     plot_pathways_summary_stats(path_summary_stats, 'all-paths')
 
     # path_names = list(paths.keys())
     #
@@ -629,3 +682,25 @@ if __name__ == "__main__":
     # # pc = get_reduced_gtex_pca(reactome)
     # pca_plot(specific_paths, reactome)
     # a = pca_plot_median_gtex(specific_paths, reactome)
+
+reactome = load_reactome()
+GTEX_GLOBAL = load_gtex()
+# plot_pathway_sizes(reactome)
+paths = get_pathways(reactome, -1, 2)
+
+path_summary_stats = summarize_path_ways(paths, reactome)
+# plot_pathways_summary_stats(path_summary_stats, 'all-paths')
+
+communities = get_communities()
+communities_pathways = { 'predicted-community-' + str(i):[x for x in communities[i] if x[0:3] != 'HP:'] for i in range(len(communities))}
+predicted_summary_stats = summarize_path_ways(communities_pathways, reactome, is_predicted=True)
+# plot real and predicted genes together
+predicted_summary_stats['type'] = 'Predicted'
+path_summary_stats['type'] = 'Known Pathway'
+combine_summary_stats = pd.concat([path_summary_stats,predicted_summary_stats])
+plot_real_and_predicted_path_ways(combine_summary_stats,'combined_community_and_pathways')
+
+# plot real and predicted but remove real wth more than 100 genes
+small_path_summary_stats = path_summary_stats[path_summary_stats['gene_count']<100]
+combine_summary_stats = pd.concat([small_path_summary_stats,predicted_summary_stats])
+plot_real_and_predicted_path_ways(combine_summary_stats,'combined_community_and_filtered_pathways')

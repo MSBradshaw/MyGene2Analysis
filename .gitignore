@@ -19,3 +19,5 @@ CommunityDetection/Expression-in-Pathways/gtex-reduced-pandas-pca.pickle
 CommunityDetection/Expression-in-Pathways/Pathway-Pickles/
 CommunityDetection/Expression-in-Pathways/.DS_Store
 GTEx/GTEx_median.pickle
+CachedFiles/*
+*.pickle
