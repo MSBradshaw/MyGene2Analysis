@@ -8,6 +8,8 @@ import pickle
 from os import path
 from math import sqrt
 import random
+from Becketts_Community_Analysis_Results.becketts_community_analysis import get_beckett_communities, load_graphs
+import seaborn as sns
 
 random.seed(0)
 
@@ -20,21 +22,24 @@ def calc_phi(tp, fp, tn, fn):
 # read in the tabular data
 data = pd.read_csv('Data/my_gene_2_variantes_by_family_tables.csv')
 
-# load the pre-made and labeled weighted bipartite of the MyGene2 data
-G = pickle.load(open('MyGene2NetworkxGraph.pickle', "rb"))
+# load the weighted bipartite of the MyGene2 data
+G, Gn = load_graphs()
 
 # do greedy community detection
-communities = nx.algorithms.community.modularity_max.greedy_modularity_communities(G)
+communities = get_beckett_communities()
 
 # g will be the network with combine community nodes
 g = G.copy()
 # for each of the interesting communities
-for i in [6, 8, 9, 10]:
+for i in range(len(communities)):
     # get all the nodes in the community that are HPOs
     hpos = []
     for n in communities[i]:
         if G.nodes[n]['Type'] == 'HPO':
             hpos.append(n)
+    # check there are more than 1 HPO, if not there is no need to merge nodes
+    if len(hpos) == 1:
+        continue
     # merge all HPOs to be one node
     g = nx.contracted_nodes(g, hpos[0], hpos[1])
     g.nodes[hpos[0]]['Name'] = 'Community-' + str(i) + g.nodes[hpos[0]]['Name'] + ',' + hpos[1]
@@ -69,7 +74,7 @@ co = pd.DataFrame(co_matrix)
 co.columns = hpos
 co.index = genes
 com_phis = []
-for i in [6, 8, 9, 10]:
+for i in range(len(communities)):
     print('Community: ' + str(i))
     # get the HPOs and the first gene
     com_hpo = None
@@ -137,6 +142,8 @@ def combine_nodes_phi(graph, gene, combine_hpos):
 phis = []
 gene_phis = {}
 while len(phis) < 10000:
+    if len(phis) % 100 == 0:
+        print(len(phis))
     try:
         index = random.randint(0, len(genes)-1)
         gene = genes[index]
@@ -170,19 +177,29 @@ while len(phis) < 10000:
         gene_phis[gene] = [p]
 
 print(len(phis))
-pickle.dump(phis, open('CommunityDetection/10000-bootstraps-phi.pickle','wb'))
-pickle.dump(gene_phis, open('10000-bootstraps-phi-dictionary.pickle','wb'))
+pickle.dump(phis, open('CommunityDetection/10000-bootstraps-phi-becketts.pickle','wb'))
+pickle.dump(gene_phis, open('CommunityDetection/10000-bootstraps-phi-dictionary-becketts.pickle','wb'))
+pickle.dump(com_phis,open('CommunityDetection/beckett-community-phis.pickle','wb'))
 
-phis = pickle.load(open('CommunityDetection/10000-bootstraps-phi.pickle','rb'))
+phis = pickle.load(open('CommunityDetection/10000-bootstraps-phi-becketts.pickle', 'rb'))
+gene_phis = pickle.load(open('10000-bootstraps-phi-dictionary-becketts.pickle', 'rb'))
+com_phis = pickle.load(open('CommunityDetection/beckett-community-phis.pickle', 'rb'))
 
-fig2, ax2 = plt.subplots()
-# plot the only community with an intersting phu (com 8)
-plt.axhline(y=0.31613179478426595,color='blue',linestyle=':')
-plt.text(1, 0.31613179478426595, '     Community 8', fontsize=8, va='bottom', ha='left', backgroundcolor=(0.0, 0.0, 0.0, 0.0))
-# plot the threshold for significance using a Bon Ferroni correction (we did 11 tests of communities)
-thresh = np.percentile(np.array(phis),(100 - (5 / 11)))
-plt.axhline(y=thresh,color='red',linestyle='--')
-plt.text(1,thresh, '     99.54 Threshold', fontsize=8, va='bottom', ha='left', backgroundcolor=(0.0, 0.0, 0.0, 0.0))
-ax2.set_title('Phi\'s Bootstraping, n=10,000')
-ax2.boxplot(phis, notch=True)
-fig2.savefig('CommunityDetection/phi-10000-boxplot.png', dpi=fig2.dpi)
+df = pd.DataFrame({'phi':phis + com_phis,'type':(['Boot Strap']*len(phis)) + (['Communities'] * len(com_phis)) })
+
+sns.boxplot(y="phi",x='type',data=df)
+plt.savefig('CommunityDetection/phi-becketts-bootstrap-10000-boxplots.png')
+
+#
+# fig2, ax2 = plt.subplots()
+# # plot the only community with an intersting phu (com 8)
+# # plt.axhline(y=0.31613179478426595,color='blue',linestyle=':')
+# # plt.text(1, 0.31613179478426595, '     Community 8', fontsize=8, va='bottom', ha='left', backgroundcolor=(0.0, 0.0, 0.0, 0.0))
+# # plot the threshold for significance using a Bon Ferroni correction (we did 11 tests of communities)
+# # thresh = np.percentile(np.array(phis),(100 - (5 / 11)))
+#
+# # plt.axhline(y=thresh,color='red',linestyle='--')
+# # plt.text(1,thresh, '     99.54 Threshold', fontsize=8, va='bottom', ha='left', backgroundcolor=(0.0, 0.0, 0.0, 0.0))
+# ax2.set_title('Phi\'s Bootstraping, n=10,000')
+# ax2.boxplot(phis, notch=True)
+# fig2.savefig('CommunityDetection/phi-10000-boxplot-becketts.png', dpi=fig2.dpi)

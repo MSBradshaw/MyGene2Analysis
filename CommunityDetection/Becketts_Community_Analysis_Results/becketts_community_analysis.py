@@ -135,7 +135,7 @@ def load_graphs():
 
 """
 given a the MyGene2 network and the communities
-plots color nodes by community and plot in WebWeb 
+plots color nodes by community and plot in WebWeb
 """
 
 
@@ -373,18 +373,24 @@ def get_genes_not_connected_to_hpos_via_neighbors(Gj, com_gene_hpo):
 if __name__ == "__main__":
     plt.margins(x=0.1)
     print('Running Community Detection Analysis from Beckett\'s LPAwb+ algorithm')
-    # get the best best set of beckett communities
+    # get the best set of beckett communities
     communities = get_beckett_communities()
+
     # load the networkx objects a named one
     G, Gn = load_graphs()
 
     # read in the known gene to phenotype connections
     Gj = load_jenkins_gene_to_pheno()
+
     # make a list of all candidate genes
     candidate_genes = get_genes(G)
-    # which candidate genes are not connected to the HPOs in their community
+
+    # which candidate genes are not connected in Jenkins to the HPOs in their community
+    # so this is which gene - hpo connections might be new or false positive
     com_gene_hpo = get_genes_not_connected_to_hpos(Gj, communities)
-    # which candidate genes are not to connected to anything their neighbors in StringDB are not connected to?
+
+    # which candidate genes are not to connected to anything in Jenkins their neighbors in StringDB are connected to?
+    # so what are potential new  gene - hpo connections / false positives from 2 steps away
     com_gene_hpo_stringdb_filtered = get_genes_not_connected_to_hpos_via_neighbors(Gj, com_gene_hpo)
 
     # plot the distribution of community sizes before filtering, after step 1 of filtering and after 2 filters
@@ -395,7 +401,7 @@ if __name__ == "__main__":
     for i in communities:
         len([x for x in i if x[0:3] != 'HP:'])
         og_com_sizes.append(len([x for x in i if x[0:3] != 'HP:']))
-        # og_com_sizes.append(len(i))
+
     # get the number of genes in each community
     for i in com_gene_hpo:
         filter_1_com_sizes.append(len(com_gene_hpo[i]))
@@ -415,8 +421,8 @@ if __name__ == "__main__":
                          'Filtering': filter_names})
 
     """
-    The results seen in this figure suggest that filtering out genes based on known neighbor interactions with their 
-    community's HPO terms does not reduce the number of communities. 
+    The results seen in this figure suggest that filtering out genes based on known neighbor interactions with their
+    community's HPO terms does not reduce the number of communities.
     """
     ax1 = sns.boxplot(x="Filtering", y="Genes in each Communities", data=data)
     ax1.set_xlabel('')
@@ -458,8 +464,8 @@ if __name__ == "__main__":
                          'Filtering': filter_names})
 
     """
-    The results seen in this figure suggest that filtering out genes based on known neighbor interactions with their 
-    community's HPO terms does not reduce the number of communities. 
+    The results seen in this figure suggest that filtering out genes based on known neighbor interactions with their
+    community's HPO terms does not reduce the number of communities.
     """
     ax1 = sns.boxplot(x="Filtering", y="Unique HPOs in each Communities", data=data)
     ax1.set_xlabel('')
@@ -507,8 +513,8 @@ if __name__ == "__main__":
                          'Filtering': filter_names})
 
     """
-    The results seen in this figure suggest that filtering out genes based on known neighbor interactions with their 
-    community's HPO terms does not reduce the number of communities. 
+    The results seen in this figure suggest that filtering out genes based on known neighbor interactions with their
+    community's HPO terms does not reduce the number of communities.
     """
     ax1 = sns.boxplot(x="Filtering", y="HPOs Associated With Each Gene", data=data)
     ax1.set_xlabel('')
