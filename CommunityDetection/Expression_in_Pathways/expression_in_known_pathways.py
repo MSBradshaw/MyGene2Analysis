@@ -79,14 +79,14 @@ Returns a pandas DataFrame of the GTEx gene expression data
 
 
 def load_gtex():
-    gtex_pickle_path = '../../GTEx/GTEx.pickle'
+    gtex_pickle_path = 'GTEx/GTEx.pickle'
     gtex = None
     if path.exists(gtex_pickle_path):
         print('loading GTEx')
         gtex = pickle.load(open(gtex_pickle_path, 'rb'))
     else:
         print('Reading GTEx: This could take a while...')
-        gtex = pd.read_csv('../../GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct', sep='\t', skiprows=2)
+        gtex = pd.read_csv('GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_tpm.gct', sep='\t', skiprows=2)
         # protocol 4 is to allow for large file handling (over 4gb)
         pickle.dump(gtex, open(gtex_pickle_path, 'wb'), protocol=4)
     return gtex
@@ -98,14 +98,14 @@ Return a Pandas DataFrame of the Median Tissue Expression GTEx Data
 
 
 def load_median_gtex():
-    gtex_pickle_path = '../../GTEx/GTEx_median.pickle'
+    gtex_pickle_path = 'GTEx/GTEx_median.pickle'
     gtex = None
     if path.exists(gtex_pickle_path):
         print('loading GTEx')
         gtex = pickle.load(open(gtex_pickle_path, 'rb'))
     else:
         print('Reading GTEx: This could take a while...')
-        gtex = pd.read_csv('../../GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct', sep='\t',
+        gtex = pd.read_csv('GTEx/GTEx_Analysis_2017-06-05_v8_RNASeQCv1.1.9_gene_median_tpm.gct', sep='\t',
                            skiprows=2)
         # protocol 4 is to allow for large file handling (over 4gb)
         pickle.dump(gtex, open(gtex_pickle_path, 'wb'), protocol=4)
@@ -167,14 +167,14 @@ def plot_pathway_sizes(reactome):
     # box plot
     ax1 = sns.boxplot(x="All Pathways", y="Number of Genes", data=data)
     ax1.set_xlabel('')
-    ax1.figure.savefig("size-of-reactome-pathways.png")
+    ax1.figure.savefig("CommunityDetection/Expression_in_Pathways/size-of-reactome-pathways.png")
     plt.clf()
 
     # box plot log scale
     ax1 = sns.boxplot(x="All Pathways", y="Number of Genes", data=data)
     ax1.set_xlabel('')
     ax1.set_yscale("log")
-    ax1.figure.savefig("size-of-reactome-pathways-log.png")
+    ax1.figure.savefig("CommunityDetection/Expression_in_Pathways/size-of-reactome-pathways-log.png")
     plt.clf()
     print('Mean:' + str(np.mean(np.array(sizes))))
     print(len(sizes))
@@ -246,12 +246,12 @@ Return a Pandas DataFrame of the Gene Expression data of all Genes, this is a la
 
 def get_expression_for_all_genes(reactome):
     # -1 will return all pathways
-    paths = get_pathways(reactome, -1)
-    expression_pickle_path = 'all-genes-expression-pd.pickle'
+    expression_pickle_path = 'CachedFiles/all-genes-expression-pd.pickle'
     if path.exists(expression_pickle_path):
         print('Loading Gene Expression From Pickle')
         return pickle.load(open(expression_pickle_path, 'rb'))
     else:
+        paths = get_pathways(reactome, -1)
         print('Generating Gene Expression From Scratch this may take a while...')
         start = time.time()
         # do this in parallel, with all but 2 threads available (so I can still do other things while it runs)
@@ -292,7 +292,7 @@ Deletes from memory GTEX_GLOBAL
 
 
 def get_reduced_gtex(reactome):
-    filepath = 'gtex-pandas-mygene2-genes-only.pickle'
+    filepath = 'CachedFiles/gtex-pandas-mygene2-genes-only.pickle'
     global GTEX_GLOBAL
     if path.exists(filepath) and False:
         print('Loading Reduced GTEX')
@@ -361,7 +361,7 @@ Returns a pandas DataFrame of the first 5 principle components from the gtex dat
 
 
 def get_gtex_pca(reactome):
-    filepath = 'gtex-pandas-pca.pickle'
+    filepath = 'CachedFiles/gtex-pandas-pca.pickle'
     if path.exists(filepath) and False:
         print('Loading PCA')
         return pickle.load(open(filepath, 'rb'))
@@ -397,9 +397,9 @@ def pca_plot(pathways, reactome):
     raw_gtex = None
     for p in pathways:
         if raw_gtex is None:
-            raw_gtex = pickle.load(open('Pathway-Pickles/' + p + '.pickle', 'rb'))
+            raw_gtex = pickle.load(open('CommunityDetection/Expression_in_Pathways/Pathway-Pickles/' + p + '.pickle', 'rb'))
         else:
-            raw_gtex = raw_gtex.append(pickle.load(open('Pathway-Pickles/' + p + '.pickle', 'rb')))
+            raw_gtex = raw_gtex.append(pickle.load(open('CommunityDetection/Expression_in_Pathways/Pathway-Pickles/' + p + '.pickle', 'rb')))
     raw_gtex = remove_filler_rows(raw_gtex)
     # get the PC's of the raw_gtex data
     pca = get_principle_components(raw_gtex)
@@ -470,7 +470,7 @@ Return the df used to generate the plot
 
 
 def plot_pathway_tissue_specificity(pathway, plot=True):
-    tsg = pd.read_csv('../../TissueSpecificGenes/tissue_specific_genes.csv')
+    tsg = pd.read_csv('TissueSpecificGenes/tissue_specific_genes.csv')
     # get the tissues related to each gene
     tissues = []
     gene_tissue_dict = {}
@@ -519,8 +519,8 @@ Return a DataFrame of pathway level gene specificity summary stats
 
 def summarize_path_ways(pathways, reactome, should_plot=False,is_predicted=False):
     print(len(pathways))
-    summary_cache_path = 'summary-path-count-' + str(len(pathways)) + '.pickle'
-    tidy_cache_path = 'tidy-path-count-' + str(len(pathways)) + '.pickle'
+    summary_cache_path = 'CachedFiles/summary-path-count-' + str(len(pathways)) + '.pickle'
+    tidy_cache_path = 'CachedFiles/tidy-path-count-' + str(len(pathways)) + '.pickle'
     # check if the cache files exist and if we are working with all pathways (there are 2292 total)
     if path.exists(summary_cache_path) and path.exists(tidy_cache_path) and len(pathways) == 2292:
         print('Loading cached summary stats')
@@ -602,86 +602,64 @@ Create and save plots visualizing the various pathways stats
 def plot_pathways_summary_stats(df, base_filename):
     ax = sns.scatterplot(x="gene_count", y="tissue_count", hue="pathway", data=df)
     ax.legend_.remove()
-    plt.savefig('Pathway-Figures/' + base_filename + '_gene_tissue_scatter.png')
+    plt.savefig('CommunityDetection/Expression_in_Pathways/Pathway-Figures/' + base_filename + '_gene_tissue_scatter.png')
     plt.clf()
 
     ax = sns.scatterplot(x="gene_count", y="non_specific_gene_count", hue="pathway", data=df)
     ax.legend_.remove()
-    plt.savefig('Pathway-Figures/' + base_filename + '_gene_non-specific_scatter.png')
+    plt.savefig('CommunityDetection/Expression_in_Pathways/Pathway-Figures/' + base_filename + '_gene_non-specific_scatter.png')
     plt.clf()
 
     ax = sns.scatterplot(x="tissue_count", y="mean_gene_per_tissue", hue="pathway", data=df)
     ax.legend_.remove()
-    plt.savefig('Pathway-Figures/' + base_filename + '_mean-gene_tissue-count_scatter.png')
+    plt.savefig('CommunityDetection/Expression_in_Pathways/Pathway-Figures/' + base_filename + '_mean-gene_tissue-count_scatter.png')
     plt.clf()
 
     ax = sns.scatterplot(x="tissue_count", y="max_genes_in_one_tissue", hue="pathway", data=df)
     ax.legend_.remove()
-    plt.savefig('Pathway-Figures/' + base_filename + '_max-genes_tissue-count_scatter.png')
+    plt.savefig('CommunityDetection/Expression_in_Pathways/Pathway-Figures/' + base_filename + '_max-genes_tissue-count_scatter.png')
     plt.clf()
 
     ax = sns.scatterplot(x="tissue_count", y="non_specific_gene_count", hue="pathway", data=df)
     ax.legend_.remove()
-    plt.savefig('Pathway-Figures/' + base_filename + '_non-specific_tissue-count_scatter.png')
+    plt.savefig('CommunityDetection/Expression_in_Pathways/Pathway-Figures/' + base_filename + '_non-specific_tissue-count_scatter.png')
     plt.clf()
 
 
 def plot_real_and_predicted_path_ways(df, base_filename):
     ax = sns.scatterplot(x="gene_count", y="tissue_count", hue="type", data=df)
-    plt.savefig('Pathway-Figures/' + base_filename + '_gene_non-specific_scatter.png')
+    plt.savefig('CommunityDetection/Expression_in_Pathways/Pathway-Figures/' + base_filename + '_gene_non-specific_scatter.png')
     plt.clf()
 
     ax = sns.scatterplot(x="gene_count", y="non_specific_gene_count", hue="type", data=df)
-    plt.savefig('Pathway-Figures/' + base_filename + '_gene_non-specific_scatter.png')
+    plt.savefig('CommunityDetection/Expression_in_Pathways/Pathway-Figures/' + base_filename + '_gene_non-specific_scatter.png')
     plt.clf()
 
     ax = sns.scatterplot(x="tissue_count", y="mean_gene_per_tissue", hue="type", data=df)
-    plt.savefig('Pathway-Figures/' + base_filename + '_mean-gene_tissue-count_scatter.png')
+    plt.savefig('CommunityDetection/Expression_in_Pathways/Pathway-Figures/' + base_filename + '_mean-gene_tissue-count_scatter.png')
     plt.clf()
 
     ax = sns.scatterplot(x="tissue_count", y="max_genes_in_one_tissue", hue="type", data=df)
-    plt.savefig('Pathway-Figures/' + base_filename + '_max-genes_tissue-count_scatter.png')
+    plt.savefig('CommunityDetection/Expression_in_Pathways/Pathway-Figures/' + base_filename + '_max-genes_tissue-count_scatter.png')
     plt.clf()
 
     ax = sns.scatterplot(x="tissue_count", y="non_specific_gene_count", hue="type", data=df)
-    plt.savefig('Pathway-Figures/' + base_filename + '_non-specific_tissue-count_scatter.png')
+    plt.savefig('CommunityDetection/Expression_in_Pathways/Pathway-Figures/' + base_filename + '_non-specific_tissue-count_scatter.png')
     plt.clf()
 
     ax = sns.boxplot(y="tissue_count", x="type", data=df)
-    plt.savefig('Pathway-Figures/' + base_filename + '_tissue-boxplot.png')
+    plt.savefig('CommunityDetection/Expression_in_Pathways/Pathway-Figures/' + base_filename + '_tissue-boxplot.png')
     plt.clf()
 
     ax = sns.boxplot(y="gene_count", x="type", data=df)
-    plt.savefig('Pathway-Figures/' + base_filename + '_gene_count-boxplot.png')
+    plt.savefig('CommunityDetection/Expression_in_Pathways/Pathway-Figures/' + base_filename + '_gene_count-boxplot.png')
     plt.clf()
 
     ax = sns.boxplot(y="non_specific_gene_count", x="type", data=df)
-    plt.savefig('Pathway-Figures/' + base_filename + '_non_specific_gene_count-boxplot.png')
+    plt.savefig('CommunityDetection/Expression_in_Pathways/Pathway-Figures/' + base_filename + '_non_specific_gene_count-boxplot.png')
     plt.clf()
 
 
-# if __name__ == "__main__":
-#     reactome = load_reactome()
-#     GTEX_GLOBAL = load_gtex()
-#     # plot_pathway_sizes(reactome)
-#     paths = get_pathways(reactome, -1, 2)
-#
-#     path_summary_stats = summarize_path_ways(paths, reactome)
-#     plot_pathways_summary_stats(path_summary_stats, 'all-paths')
-
-    # path_names = list(paths.keys())
-    #
-    # # The citric acid cycle; Potassium Channels; Innate Immune System; Extension of Telomeres; Double
-    # # Stranded Break Repair
-    # specific_paths = ['R-HSA-1428517', 'R-HSA-1296071', 'R-HSA-168249', 'R-HSA-180786', 'R-HSA-5685942']
-    #
-    # # make a stacked bar plot of one pathway
-    # plot_pathway_tissue_specificity(paths['R-HSA-8852276'])
-    #
-    # # e = get_reduced_gtex(reactome)
-    # # pc = get_reduced_gtex_pca(reactome)
-    # pca_plot(specific_paths, reactome)
-    # a = pca_plot_median_gtex(specific_paths, reactome)
 if __name__ == "__main__":
     reactome = load_reactome()
     GTEX_GLOBAL = load_gtex()
